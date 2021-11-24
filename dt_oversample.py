@@ -15,7 +15,7 @@ x_train, x_test, y_train,  y_test = train_test_split(x, y, stratify=y, random_st
 
 clf = DecisionTreeClassifier(random_state=1)
 ros = RandomOverSampler(sampling_strategy='minority')
-x_resampled, y_resampled = ros.fit_resample(x, y)
+x_resampled, y_resampled = ros.fit_resample(x_train, y_train)
 clf.fit(x_resampled, y_resampled)
 y_pred = clf.predict(x_test)
 con_mat = confusion_matrix(y_test, y_pred)
