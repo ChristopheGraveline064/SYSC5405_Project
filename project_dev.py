@@ -9,13 +9,14 @@ import seaborn as sns
 import sklearn
 from sklearn.feature_selection import f_classif, chi2, SelectKBest, SelectPercentile
 from collections import Counter
-from sklearn.model_selection import StratifiedKFold, train_test_split
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import StratifiedKFold, train_test_split, cross_val_score
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, PrecisionRecallDisplay, precision_recall_curve, roc_curve, RocCurveDisplay, roc_auc_score, average_precision_score
 
 
 dataset = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\train_data.csv")
 
+#%%
 
 print("Any NaN value in the dataset: ", dataset.isnull().values.any())
 print("Class", Counter(dataset.Label))
@@ -81,7 +82,9 @@ for train_i, test_i in kfold_5.split(X,y):
     y_test = y.iloc[test_i]
     
     # dt2 = DecisionTreeClassifier()
-    dt2 = DecisionTreeClassifier(max_depth=20)
+    # dt2 = DecisionTreeClassifier(max_depth=20)
+    # dt2 = DecisionTreeClassifier(criterion="entropy")
+    dt2 = DecisionTreeClassifier(class_weight="balanced")
 
 
     ## training
@@ -143,6 +146,9 @@ rc = tp/(tp+fn)
 print("F1 score: ", (2*pr*rc)/(pr+rc))
 
 
+#%%
+
+print(cross_val_score(DecisionTreeClassifier(), X, y, cv=3))
 
 
 
