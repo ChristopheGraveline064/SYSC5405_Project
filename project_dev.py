@@ -42,7 +42,7 @@ X = dataset.drop("Label",axis="columns")
 
 X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33, stratify=y)
 
-hyper_p = { "max_depth":(1,2,3,4,5,6,7,8,9),
+hyper_p = { "max_depth":(3,5,7,10,20,30,40,50,60),
 "criterion":("gini","entropy"),
 "max_features":("auto","sqrt","log2"),
 "min_samples_split":(2,4,6,8)
@@ -61,21 +61,27 @@ DT_all.best_estimator_
 
 #%%
 
-dt1 = DecisionTreeClassifier(max_depth=20, max_features="sqrt",min_samples_split=4)
+dt1 = DecisionTreeClassifier(max_depth=40, max_features="sqrt",min_samples_split=8,criterion="entropy")
 # dt1 = DecisionTreeClassifier(max_depth=1)
 
 dt1.fit(X_train,y_train)
 
-# pred_y = dt1.predict(X_test)
+pred_y = dt1.predict(X_test)
 pred_y_proba = dt1.predict_proba(X_test)[:,1]
 
-print(Counter((pred_y_proba)))
+# print(Counter((pred_y_proba)))
+
 # # print(confusion_matrix(y_test,pred_y))
 
-ConfusionMatrixDisplay.from_estimator(dt1,X_test,y_test)
 
-pl = PrecisionRecallDisplay.from_estimator(dt1,X,y,pos_label=1)
-# pl.plot()
+PrecisionRecallDisplay.from_estimator(dt1,X_test,y_test,pos_label=1)
+ConfusionMatrixDisplay.from_estimator(dt1,X_test,y_test)
+RocCurveDisplay.from_estimator(dt1,X_test,y_test,pos_label=1)
+
+
+# PrecisionRecallDisplay.from_predictions(y_test,pred_y_proba,pos_label=1)
+# ConfusionMatrixDisplay.from_predictions(y_test,pred_y)
+
 # print(average_precision_score(y_test, pred_y_proba,pos_label=1))
 
 
