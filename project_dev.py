@@ -16,7 +16,7 @@ from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, PrecisionR
 
 dataset = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\train_data.csv")
 
-#%%
+
 
 print("Any NaN value in the dataset: ", dataset.isnull().values.any())
 print("Class", Counter(dataset.Label))
@@ -39,20 +39,45 @@ X = dataset.drop("Label",axis="columns")
 # print(dataset.shape, X.shape, y.shape)
 
 ## 67% Training data, 33% test data
+
 X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33, stratify=y)
 
-dt1 = DecisionTreeClassifier()
+hyper_p = { "max_depth":(1,2,3,4,5,6,7,8,9),
+"criterion":("gini","entropy"),
+"max_features":("auto","sqrt","log2"),
+"min_samples_split":(2,4,6,8)
+}
+
+from sklearn.model_selection import RandomizedSearchCV
+
+DT_all = RandomizedSearchCV(DecisionTreeClassifier(), param_distributions=hyper_p,  cv = 5, verbose=True)
+
+DT_all.fit(X_train,y_train)
+
+DT_all.best_estimator_
+
+
+
+
+#%%
+
+dt1 = DecisionTreeClassifier(max_depth=20, max_features="sqrt",min_samples_split=4)
 # dt1 = DecisionTreeClassifier(max_depth=1)
 
 dt1.fit(X_train,y_train)
 
 # pred_y = dt1.predict(X_test)
-pred_y_proba = dt1.predict_proba(X_test)
+pred_y_proba = dt1.predict_proba(X_test)[:,1]
 
-print(((pred_y_proba)))
+print(Counter((pred_y_proba)))
 # # print(confusion_matrix(y_test,pred_y))
 
 ConfusionMatrixDisplay.from_estimator(dt1,X_test,y_test)
+
+pl = PrecisionRecallDisplay.from_estimator(dt1,X,y,pos_label=1)
+# pl.plot()
+# print(average_precision_score(y_test, pred_y_proba,pos_label=1))
+
 
 # ## need to check for overfitting
 
@@ -115,8 +140,9 @@ pred_list = np.concatenate(pred_list)
 
 print(Counter(pred_list))
 
-precision, recall, _ = precision_recall_curve(real_list,pred_list,pos_label=1)
-pl = PrecisionRecallDisplay(recall=recall, precision=precision,  pos_label=1)  
+# precision, recall, _ = precision_recall_curve(real_list,pred_list,pos_label=1)
+# pl = PrecisionRecallDisplay(recall=recall, precision=precision, pos_label=1)  
+pl = PrecisionRecallDisplay.from_estimator(DecisionTreeClassifier,X,y,pos_label=1)
 a_p = np.round(average_precision_score(real_list,pred_list),2)
 pl.plot(ax=ax3,label="Average (final) (AP = "+str(a_p)+")",color="black")
 pr.suptitle("Precison-Recall curves")
