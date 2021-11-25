@@ -12,7 +12,7 @@ from collections import Counter
 from sklearn.model_selection import StratifiedKFold, train_test_split, cross_val_score
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, PrecisionRecallDisplay, precision_recall_curve, roc_curve, RocCurveDisplay, roc_auc_score, average_precision_score
-
+from sklearn.decomposition import PCA
 
 dataset = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\train_data.csv")
 
@@ -32,6 +32,13 @@ print("Duplicated rows: ", dataset.duplicated().sum())
 y = dataset.Label
 # X = dataset.drop("Label",axis="columns")
 X = dataset.drop(["Label","KIBA"],axis="columns")
+
+## Applting PCA
+
+# pca_X = PCA(n_components=5)
+# X = pca_X.fit_transform(X)
+# print(X.shape)
+# X.head()
 
 # sns.histplot(X.iloc[:,2])
 
@@ -57,38 +64,37 @@ X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33,stratify=
 # print(X_test.shape)
 # print(y_test.shape)
 
-# hyper_p = { "max_depth":(10,20,40,60),
-# "criterion":("gini","entropy"),
+hyper_p = { "max_depth":(10,20,40,60),
+"criterion":("gini","entropy"),
+"max_features":("auto","sqrt","log2"),
+"min_samples_split":(2,4,6,8),
+"random_state": (3,5,7,9)
+}
+
+
+# hyper_p2 = { "max_depth":(10,20,40,60),
 # "max_features":("auto","sqrt","log2"),
-# "min_samples_split":(2,4,6,8),
-# "random_state": (3,5,7,9)
-# }
+# } 
 
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 
-# # hyper_p2 = { "max_depth":(10,20,40,60),
-# # "max_features":("auto","sqrt","log2"),
-# # } 
+DT_all = RandomizedSearchCV(DecisionTreeClassifier(), param_distributions=hyper_p,  cv = 5, verbose=True)
+# DT_all = GridSearchCV(DecisionTreeClassifier(), param_grid=hyper_p2,  cv = 5, verbose=True)
 
-# from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
+DT_all.fit(X_train,y_train)
 
-# DT_all = RandomizedSearchCV(DecisionTreeClassifier(), param_distributions=hyper_p,  cv = 5, verbose=True)
-# # DT_all = GridSearchCV(DecisionTreeClassifier(), param_grid=hyper_p2,  cv = 5, verbose=True)
-
-# DT_all.fit(X_train,y_train)
-
-# DT_all.best_estimator_
+DT_all.best_estimator_
 
 
 #%%
 
-# dt1 = DecisionTreeClassifier(max_depth=20, max_features="sqrt",min_samples_split=4,criterion="entropy")#,random_state=6)
 # dt1 = DecisionTreeClassifier(max_depth=40, max_features="sqrt",min_samples_split=4,criterion="entropy",random_state=2)
  
-weights = {0:0.1, 1:1.0}
-dt1 = DecisionTreeClassifier(class_weight=weights)#(max_depth=20, max_features="sqrt",min_samples_split=4,criterion="entropy")#,random_state=6)
+# weights = {0:0.1, 1:1.0}
+# dt1 = DecisionTreeClassifier(class_weight=weights)#(max_depth=20, max_features="sqrt",min_samples_split=4,criterion="entropy")#,random_state=6)
 
 # dt1 = DecisionTreeClassifier()#(max_depth=20, max_features="sqrt",min_samples_split=4,criterion="entropy")#,random_state=6)
-
+dt1 = DecisionTreeClassifier(max_depth=10, max_features="sqrt",min_samples_split=6,criterion="entropy",random_state=9)
 dt1.fit(X_train,y_train)
 
 # pred_y = dt1.predict(X_test)
@@ -97,6 +103,14 @@ dt1.fit(X_train,y_train)
 # print(Counter((pred_y_proba)))
 
 # # print(confusion_matrix(y_test,pred_y))
+
+##performance on training data
+
+# PrecisionRecallDisplay.from_estimator(dt1,X_train,y_train,pos_label=1)
+# ConfusionMatrixDisplay.from_estimator(dt1,X_train,y_train)
+# RocCurveDisplay.from_estimator(dt1,X_train,y_train,pos_label=1)
+
+##performance on test data
 
 
 PrecisionRecallDisplay.from_estimator(dt1,X_test,y_test,pos_label=1)
