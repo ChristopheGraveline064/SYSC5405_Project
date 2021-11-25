@@ -90,11 +90,14 @@ DT_all.best_estimator_
 
 # dt1 = DecisionTreeClassifier(max_depth=40, max_features="sqrt",min_samples_split=4,criterion="entropy",random_state=2)
  
-# weights = {0:0.1, 1:1.0}
+weights = {0:0.25, 1:1.0}
 # dt1 = DecisionTreeClassifier(class_weight=weights)#(max_depth=20, max_features="sqrt",min_samples_split=4,criterion="entropy")#,random_state=6)
 
 # dt1 = DecisionTreeClassifier()#(max_depth=20, max_features="sqrt",min_samples_split=4,criterion="entropy")#,random_state=6)
-dt1 = DecisionTreeClassifier(max_depth=10, max_features="sqrt",min_samples_split=6,criterion="entropy",random_state=9)
+# dt1 = DecisionTreeClassifier(max_depth=10, max_features="sqrt",min_samples_split=100,criterion="entropy",random_state=9)
+
+dt1 = DecisionTreeClassifier(max_depth=10, max_features="sqrt",min_samples_split=8,criterion="gini", class_weight=weights)
+
 dt1.fit(X_train,y_train)
 
 # pred_y = dt1.predict(X_test)
