@@ -35,10 +35,12 @@ X = dataset.drop(["Label","KIBA"],axis="columns")
 
 ## Applting PCA
 
-# pca_X = PCA(n_components=5)
+# pca_X = PCA(n_components=200)
 # X = pca_X.fit_transform(X)
 # print(X.shape)
 # X.head()
+
+# X = SelectPercentile(X, percentile=30)
 
 # sns.histplot(X.iloc[:,2])
 
@@ -90,14 +92,19 @@ DT_all.best_estimator_
 
 # dt1 = DecisionTreeClassifier(max_depth=40, max_features="sqrt",min_samples_split=4,criterion="entropy",random_state=2)
  
-weights = {0:0.25, 1:1.0}
+
 # dt1 = DecisionTreeClassifier(class_weight=weights)#(max_depth=20, max_features="sqrt",min_samples_split=4,criterion="entropy")#,random_state=6)
 
 # dt1 = DecisionTreeClassifier()#(max_depth=20, max_features="sqrt",min_samples_split=4,criterion="entropy")#,random_state=6)
 # dt1 = DecisionTreeClassifier(max_depth=10, max_features="sqrt",min_samples_split=100,criterion="entropy",random_state=9)
 
 # dt1 = DecisionTreeClassifier(max_depth=10, max_features="sqrt",min_samples_split=8,criterion="gini", class_weight=weights)
-dt1 = DecisionTreeClassifier()
+# dt1 = DecisionTreeClassifier()
+# dt1 = DecisionTreeClassifier(max_depth=6, max_features="sqrt",min_samples_split=8,criterion="gini")#, class_weight=weights)
+
+# weights = {0:8, 1:1}
+
+dt1 = DecisionTreeClassifier(max_depth=6,min_samples_split=8,criterion="gini")#, class_weight="balanced")
 
 dt1.fit(X_train,y_train)
 
@@ -134,27 +141,29 @@ RocCurveDisplay.from_estimator(dt1,X_test,y_test,pos_label=1)
 #%%
 ## post training pruning
 
-pruning_path = dt1.cost_complexity_pruning_path(X_train,y_train)
+# pruning_path = dt1.cost_complexity_pruning_path(X_train,y_train)
 
-alphas,impurities = pruning_path.ccp_alphas,pruning_path.impurities
+# alphas,impurities = pruning_path.ccp_alphas,pruning_path.impurities
 
-dt_list = []
+# print(len(alphas))
 
-for i in alphas:
-    dt_i = DecisionTreeClassifier(ccp_alpha = i,random_state = 0)
-    dt_list.append(dt_i.fit(X_train,y_train))
+# dt_list = []
+
+# for i in alphas:
+#     dt_i = DecisionTreeClassifier(ccp_alpha = i,random_state = 0)
+#     dt_list.append(dt_i.fit(X_train,y_train))
 
 
-train_scores = [dt.score(X_train, y_train) for dt in dt_list]
-test_scores = [dt.score(X_test, y_test) for dt in dt_list]
-fig, ax1 = plt.subplots()
-ax1.set_xlabel("Alpha")
-ax1.set_ylabel("Accuracy")
-ax1.set_title("Accuracy vs alpha for training and testing sets")
-ax1.plot(alphas, train_scores, marker='o', label="train",drawstyle="steps-post")
-ax1.plot(alphas, test_scores, marker='x', label="test",drawstyle="steps-post")
-ax1.legend()
-plt.show()
+# train_scores = [dt.score(X_train, y_train) for dt in dt_list]
+# test_scores = [dt.score(X_test, y_test) for dt in dt_list]
+# fig, ax1 = plt.subplots()
+# ax1.set_xlabel("Alpha")
+# ax1.set_ylabel("Accuracy")
+# ax1.set_title("Accuracy vs alpha for training and testing sets")
+# ax1.plot(alphas, train_scores, marker='o', label="train",drawstyle="steps-post")
+# ax1.plot(alphas, test_scores, marker='x', label="test",drawstyle="steps-post")
+# ax1.legend()
+# plt.show()
 
     
 
