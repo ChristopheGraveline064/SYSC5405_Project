@@ -18,20 +18,45 @@ dataset = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Cl
 
 
 
-print("Any NaN value in the dataset: ", dataset.isnull().values.any())
-print("Class", Counter(dataset.Label))
-print("Unique columns: ", len(set(dataset.columns)))
+# print("Any NaN value in the dataset: ", dataset.isnull().values.any())
+# print("Class", Counter(dataset.Label))
+# print("Unique columns: ", len(set(dataset.columns)))
 
-print(dataset.shape)    
+# # print(dataset.shape)    
 
-print("Duplicated rows: ", dataset.duplicated().sum())
+# print("Duplicated rows: ", dataset.duplicated().sum())
 
 ## are there any categorical variables that need to be one hot encoded??
 # dataset.describe()
-
+l=[]
+f=[]
 y = dataset.Label
-# X = dataset.drop("Label",axis="columns")
+# jj = dataset.columns
 X = dataset.drop(["Label","KIBA"],axis="columns")
+for i in X.columns:
+    # print(i)
+    k = sst.spearmanr(X[i],dataset.KIBA)[1]
+    if k>=0.05:
+        l.append(i)
+        f.append(k)
+print(l)
+# print(len(l))
+# print(f)
+
+X = X[l]
+print(X.shape)
+
+# y = dataset.Label
+# # X = dataset.drop("Label",axis="columns")
+# X = dataset.drop(["Label","KIBA"],axis="columns")
+# # X = dataset.iloc[:,:13]
+# # X.head()
+
+
+
+
+# a = np.sum(X.iloc[2,:],axis = 0)
+# print(a/336)
 
 ## Applting PCA
 
@@ -104,11 +129,26 @@ DT_all.best_estimator_
 
 # weights = {0:8, 1:1}
 
-dt1 = DecisionTreeClassifier(max_depth=6,min_samples_split=8,criterion="gini")#, class_weight="balanced")
+dt1 = DecisionTreeClassifier(max_depth=7, min_samples_split=8, criterion="gini")#, class_weight="balanced")
 
 dt1.fit(X_train,y_train)
 
-# pred_y = dt1.predict(X_test)
+pred_y = dt1.predict(X_test)
+
+cm = confusion_matrix(y_test,pred_y)
+tn,fp,fn,tp = cm.ravel()
+# print(tn,fp,fn,tp)
+# print("Before pruning:\n")
+print("After pruning:\n")
+print("Accuracy: ",(tp+tn)/(tp+tn+fp+fn))
+print("Precision: ", tp/(tp+fp))
+print("Recall: ", tp/(tp+fn))
+print("Sensitivity: ", tp/(tp+fn))
+print("Specificity: ",tn/(tn+fp))
+pr = tp/(tp+fp)
+rc = tp/(tp+fn)
+print("F1 score: ", (2*pr*rc)/(pr+rc))
+
 # pred_y_proba = dt1.predict_proba(X_test)[:,1]
 
 # print(Counter((pred_y_proba)))
@@ -141,9 +181,14 @@ RocCurveDisplay.from_estimator(dt1,X_test,y_test,pos_label=1)
 #%%
 ## post training pruning
 
-# pruning_path = dt1.cost_complexity_pruning_path(X_train,y_train)
+pruning_path = dt1.cost_complexity_pruning_path(X_train,y_train)
 
-# alphas,impurities = pruning_path.ccp_alphas,pruning_path.impurities
+alphas,impurities = pruning_path.ccp_alphas,pruning_path.impurities
+
+_, ax2 = plt.subplots()
+
+ax2.plot(alphas[:-1],impurities[:-1],marker = "x", drawstyle = "steps-post")
+
 
 # print(len(alphas))
 
@@ -165,7 +210,17 @@ RocCurveDisplay.from_estimator(dt1,X_test,y_test,pos_label=1)
 # ax1.legend()
 # plt.show()
 
-    
+#%%
+alp = 0.0009
+alp = 0.001
+alp2 = 0.0015
+
+dt_new = DecisionTreeClassifier(ccp_alpha=alp2)
+dt_new.fit(X_train,y_train)
+
+PrecisionRecallDisplay.from_estimator(dt_new,X_test,y_test,pos_label=1)
+ConfusionMatrixDisplay.from_estimator(dt_new,X_test,y_test)
+RocCurveDisplay.from_estimator(dt_new,X_test,y_test,pos_label=1)
 
 
 #%%
