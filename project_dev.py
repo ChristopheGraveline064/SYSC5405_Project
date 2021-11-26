@@ -35,13 +35,13 @@ y = dataset.Label
 X = dataset.drop(["Label","KIBA"],axis="columns")
 for i in X.columns:
     # print(i)
-    k = sst.spearmanr(X[i],dataset.KIBA)[1]
-    if k>=0.05:
+    k = sst.spearmanr(X[i],dataset.KIBA)
+    if k[1]<0.05:
         l.append(i)
-        f.append(k)
-print(l)
+        f.append(k[0])
+# print(l)
 # print(len(l))
-# print(f)
+print(sorted(f,reverse=True))
 
 X = X[l]
 print(X.shape)
