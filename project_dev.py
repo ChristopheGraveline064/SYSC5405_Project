@@ -28,29 +28,55 @@ dataset = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Cl
 
 ## are there any categorical variables that need to be one hot encoded??
 # dataset.describe()
-l=[]
-f=[]
-y = dataset.Label
-# jj = dataset.columns
-X = dataset.drop(["Label","KIBA"],axis="columns")
-for i in X.columns:
-    # print(i)
-    k = sst.spearmanr(X[i],dataset.KIBA)
-    if k[1]<0.05:
-        l.append(i)
-        f.append(k[0])
+# l=[]
+# f=[]
+# y = dataset.Label
+# # jj = dataset.columns
+# X = dataset.drop(["Label","KIBA"],axis="columns")
+# for i in X.columns:
+#     # print(i)
+#     k = sst.spearmanr(X[i],dataset.KIBA)
+#     if k[1]<0.05:
+#         l.append(i)
+#         f.append(k[0])
+# # print(l)
+# # print(len(l))
+# print(sorted(f,reverse=True))
+
+# X = X[l]
+# print(X.shape)
+
+
+# l=[]
+# f=[]
+# y = dataset.Label
+# # jj = dataset.columns
+# X = dataset.drop(["Label","KIBA"],axis="columns")
+# j = 1
+# kkk =[]
+# for i in range(1,50,1):
+#     kkk.append("G"+str(i))
+# for i in X.columns:
+#     # print(i)
+#     # print("G"+str(j))
+#     if i in kkk:
+#         l.append(i)
+#         # l.append(X[i])
+#     j+=1
+
 # print(l)
 # print(len(l))
-print(sorted(f,reverse=True))
+# # print(sorted(f,reverse=True))
 
-X = X[l]
-print(X.shape)
+# X = X[l]
+# print(X.shape)
 
-# y = dataset.Label
-# # X = dataset.drop("Label",axis="columns")
-# X = dataset.drop(["Label","KIBA"],axis="columns")
-# # X = dataset.iloc[:,:13]
-# # X.head()
+
+y = dataset.Label
+# X = dataset.drop("Label",axis="columns")
+X = dataset.drop(["Label","KIBA"],axis="columns")
+# X = dataset.iloc[:,:13]
+# X.head()
 
 
 
@@ -72,7 +98,49 @@ print(X.shape)
 # corr = X.corr()
 # fig, ax = plt.subplots(figsize=(24, 18))
 # sns.heatmap(corr, ax=ax)
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33,stratify=y)#random_state=2)#,shuffle=True)#, 
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33,random_state = 7, stratify=y)#random_state=2)#,shuffle=True)#, 
+
+
+#%%
+## XGBOOST
+from xgboost import XGBClassifier, XGBRFClassifier
+
+xgb = XGBClassifier()
+# xgbrf = XGBRFClassifier()
+
+xgb.fit(X_train,y_train)
+# xgbrf.fit(X_train,y_train)
+
+pred_y = xgb.predict(X_test)
+# pred_y = xgbrf.predict(X_test)
+
+cm = confusion_matrix(y_test,pred_y)
+tn,fp,fn,tp = cm.ravel()
+# print(tn,fp,fn,tp)
+# print("Before pruning:\n")
+print("After pruning:\n")
+print("Accuracy: ",(tp+tn)/(tp+tn+fp+fn))
+print("Precision: ", tp/(tp+fp))
+print("Recall: ", tp/(tp+fn))
+print("Sensitivity: ", tp/(tp+fn))
+print("Specificity: ",tn/(tn+fp))
+pr = tp/(tp+fp)
+rc = tp/(tp+fn)
+print("F1 score: ", (2*pr*rc)/(pr+rc))
+
+
+# ##XGB
+PrecisionRecallDisplay.from_estimator(xgb,X_test,y_test,pos_label=1)
+ConfusionMatrixDisplay.from_estimator(xgb,X_test,y_test)
+RocCurveDisplay.from_estimator(xgb,X_test,y_test,pos_label=1)
+
+
+# ##XGBRF
+# PrecisionRecallDisplay.from_estimator(xgbrf,X_test,y_test,pos_label=1)
+# ConfusionMatrixDisplay.from_estimator(xgbrf,X_test,y_test)
+# RocCurveDisplay.from_estimator(xgbrf,X_test,y_test,pos_label=1)
+
+
 
 
 #%%
