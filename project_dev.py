@@ -102,8 +102,10 @@ X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33,random_st
 
 
 #%%
-## XGBOOST
+## AVENGERS "ENSEMBLE"
+
 from xgboost import XGBClassifier, XGBRFClassifier
+from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier
 
 
 ## encoding labels
@@ -114,14 +116,25 @@ y_test.replace({False: 0, True: 1}, inplace=True)
 
 # print(y_test[:10])
 
-xgb = XGBClassifier(use_label_encoder=False)#, max_depth =7)
-# xgbrf = XGBRFClassifier()
+ensemble_model = XGBClassifier(use_label_encoder=False)#, max_depth =7)
+# ensemble_model = AdaBoostClassifier()#(max_depth = 7)
+# ensemble_model = BaggingClassifier()
+# ensemble_model = ExtraTreesClassifier()
+# ensemble_model = GradientBoostingClassifier()
+# ensemble_model = HistGradientBoostingClassifier()
 
-xgb.fit(X_train,y_train)
-# xgbrf.fit(X_train,y_train)
 
-pred_y = xgb.predict(X_test)
-# pred_y = xgbrf.predict(X_test)
+
+# ensemble_modelrf = XGBRFClassifier()
+
+ensemble_model.fit(X_train,y_train)
+# ensemble_model.fit(X_train,y_train, eval_metric='aucpr')
+
+
+# ensemble_modelrf.fit(X_train,y_train)
+
+pred_y = ensemble_model.predict(X_test)
+# pred_y = ensemble_modelrf.predict(X_test)
 
 cm = confusion_matrix(y_test,pred_y)
 tn,fp,fn,tp = cm.ravel()
@@ -138,16 +151,10 @@ rc = tp/(tp+fn)
 print("F1 score: ", (2*pr*rc)/(pr+rc))
 
 
-# ##XGB
-PrecisionRecallDisplay.from_estimator(xgb,X_test,y_test,pos_label=1)
-ConfusionMatrixDisplay.from_estimator(xgb,X_test,y_test)
-RocCurveDisplay.from_estimator(xgb,X_test,y_test,pos_label=1)
-
-
-# ##XGBRF
-# PrecisionRecallDisplay.from_estimator(xgbrf,X_test,y_test,pos_label=1)
-# ConfusionMatrixDisplay.from_estimator(xgbrf,X_test,y_test)
-# RocCurveDisplay.from_estimator(xgbrf,X_test,y_test,pos_label=1)
+# ##ensemble_model
+PrecisionRecallDisplay.from_estimator(ensemble_model,X_test,y_test,pos_label=1)
+ConfusionMatrixDisplay.from_estimator(ensemble_model,X_test,y_test)
+RocCurveDisplay.from_estimator(ensemble_model,X_test,y_test,pos_label=1)
 
 
 
