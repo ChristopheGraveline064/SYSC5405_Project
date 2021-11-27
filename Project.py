@@ -19,9 +19,9 @@ from scikit_obliquetree.segmentor import MSE, MeanSegmentor
 from sklearn import model_selection
 from sklearn.datasets import load_boston
 from sklearn.ensemble import (
-    BaggingRegressor,
-    GradientBoostingRegressor,
-    RandomForestRegressor,
+    BaggingClassifier,
+    GradientBoostingClassifier,
+    RandomForestClassifier,
 )
 
 class Assignment:
@@ -115,39 +115,36 @@ class Assignment:
         plt.title("Precision Recall Curve")
         plt.legend(loc="lower right")
 
+    def pred_from_kiba(self, pred):
+        for i, kiba in enumerate(pred):
+            if pred > 12.1:
+                pred[i] = 1
+            else:
+                pred[i] = 0
+
 
 class DecisionTree(Assignment):
-    def __init__(self, data, fold=5):
+    def __init__(self, data, fold=5, model=tree.DecisionTreeRegressor(max_depth=8)):
         super().__init__(data)
-        self.features = self.select_k_best()
-        #self.model = tree.DecisionTreeClassifier(max_depth=3,min_samples_split=2, criterion="gini")
-        self.model = BaggingRegressor(
-                HouseHolderCART(MSE(), MeanSegmentor(), max_depth=12),
-                n_estimators=100,
-                n_jobs=5,
-            )
-        '''self.model = BaggingRegressor(
-            ContinuouslyOptimizedObliqueRegressionTree(
-                MSE(), MeanSegmentor(), thau=500, max_iter=100, max_depth=3
-            ),
-            100,
-            n_jobs=-1,
-        )'''
+        #self.features = self.select_k_best()
+        self.model = model
 
         #self.target_prod = cross_val_predict(self.model, self.features, self.target, cv=fold)
-        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.1, stratify=self.target)
+        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.1)
         #y_train.replace({'False': 0, 'True': 1}, inplace=True)
         #y_test.replace({'False': 0, 'True': 1}, inplace=True)
         self.model.fit(X_train, y_train)
-        self.target_pred = self.model.predict(X_test)
-        print(self.target_pred)
-        #self.target_prod = self.model.predict_proba(X_test)
-        #print(self.target_prod)
-
-        #self.get_confusion_matrix_result(y_test, self.target_pred, "Decision Tree Classifier")
-
-        self.roc_plot(y_test, self.target_pred)
-        self.precision_recall_curve_plot(y_test, self.target_pred)
+        try:
+            self.target_pred = self.model.predict(X_test)
+            self.get_confusion_matrix_result(y_test, self.target_pred, "Decision Tree Classifier")
+        except:
+            print("cannot get the prediction or display the confusion matrix")
+        try:
+            self.target_prod = self.model.predict_proba(X_test)
+            self.roc_plot(y_test, self.target_prod[:,1])
+            self.precision_recall_curve_plot(y_test, self.target_prod[:,1])
+        except:
+            print("cannot get the probability or display the roc or prc")
 
         #PrecisionRecallDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
         #RocCurveDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
@@ -199,7 +196,33 @@ if __name__ == '__main__':
 
 
     kfold = 10
-    Classifier = DecisionTree(data, kfold)
+    Classifier = DecisionTree(data, kfold, BaggingClassifier(n_estimators=100, random_state=0))
+    # RandomForestClassifier(max_depth=8)
+    # GradientBoostingClassifier(max_depth=8)
+    # tree.DecisionTreeClassifier(max_depth=3,min_samples_split=2, criterion="gini")
+    # tree.DecisionTreeRegressor(max_depth=8)
+    # BaggingClassifier(n_estimators=100, random_state=0)
+    ''' BaggingRegressor(
+            HouseHolderCART(MSE(), MeanSegmentor(), max_depth=12),
+            n_estimators=100,
+            n_jobs=5,
+        )'''
+    ''' BaggingRegressor(
+        BUTIF(
+            linear_model=LogisticRegression(max_iter=10000),
+            task="regression",
+            max_leaf=8,
+        ),
+        10,
+        n_jobs=5,            
+    )'''
+    ''' BaggingRegressor(
+        ContinuouslyOptimizedObliqueRegressionTree(
+            MSE(), MeanSegmentor(), thau=500, max_iter=100, max_depth=8
+        ),
+        100,
+        n_jobs=-1,
+    )'''
     plt.show()
 
 
