@@ -105,7 +105,16 @@ X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33,random_st
 ## XGBOOST
 from xgboost import XGBClassifier, XGBRFClassifier
 
-xgb = XGBClassifier()
+
+## encoding labels
+# print(y_test[:10])
+
+y_train.replace({False: 0, True: 1}, inplace=True)
+y_test.replace({False: 0, True: 1}, inplace=True)
+
+# print(y_test[:10])
+
+xgb = XGBClassifier(use_label_encoder=False)#, max_depth =7)
 # xgbrf = XGBRFClassifier()
 
 xgb.fit(X_train,y_train)
