@@ -11,8 +11,18 @@ import graphviz
 import sys
 import os
 from dtreeviz.trees import dtreeviz
+from scikit_obliquetree.BUTIF import BUTIF
+from scikit_obliquetree.CO2 import ContinuouslyOptimizedObliqueRegressionTree
+from scikit_obliquetree.GradientBoosting import GradientBoosting
 from scikit_obliquetree.HHCART import HouseHolderCART
 from scikit_obliquetree.segmentor import MSE, MeanSegmentor
+from sklearn import model_selection
+from sklearn.datasets import load_boston
+from sklearn.ensemble import (
+    BaggingRegressor,
+    GradientBoostingRegressor,
+    RandomForestRegressor,
+)
 
 class Assignment:
     def __init__(self, data_file):
@@ -110,12 +120,18 @@ class DecisionTree(Assignment):
     def __init__(self, data, fold=5):
         super().__init__(data)
         #self.features = self.select_k_best()
-        self.model = tree.DecisionTreeClassifier(max_depth=3,min_samples_split=2, criterion="gini")
+        #self.model = tree.DecisionTreeClassifier(max_depth=3,min_samples_split=2, criterion="gini")
+        self.model = BaggingRegressor(
+                HouseHolderCART(MSE(), MeanSegmentor(), max_depth=3),
+                100,
+                n_jobs=-1,
+            )
+
         #self.target_prod = cross_val_predict(self.model, self.features, self.target, cv=fold)
         X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, stratify=self.target)
         self.target_prod = self.model.fit(X_train, y_train).predict(X_test)
         self.get_confusion_matrix_result(y_test, self.target_prod, "Decision Tree Classifier")
-        self.dt_visualisation()
+        #self.dt_visualisation()
 
     def dt_visualisation(self):
         viz = dtreeviz(self.model, self.features, self.target,
