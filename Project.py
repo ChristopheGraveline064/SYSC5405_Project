@@ -11,6 +11,8 @@ import graphviz
 import sys
 import os
 from dtreeviz.trees import dtreeviz
+from scikit_obliquetree.HHCART import HouseHolderCART
+from scikit_obliquetree.segmentor import MSE, MeanSegmentor
 
 class Assignment:
     def __init__(self, data_file):
@@ -41,7 +43,7 @@ class Assignment:
         feature_b = feature_b - 1
         plt.figure()
         print(self.data)
-        seaborn.scatterplot(data=self.data, x=feature_a, y=feature_b)
+        seaborn.scatterplot(data=self.data, x=feature_a, y=feature_b, hue=(len(self.data.columns)-1))
         #plt.show()
 
     #preprocessing
@@ -66,7 +68,6 @@ class Assignment:
         disp = ConfusionMatrixDisplay(confusion_matrix=cm)
         disp.plot()
         disp.ax_.set_title("Confusion Matrix {}".format(title))
-        #plt.show()
         #accuracy
         ACC = (TP+TN) / (TP+TN+FN+FP)
         #precision
@@ -114,31 +115,27 @@ class DecisionTree(Assignment):
         X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, stratify=self.target)
         self.target_prod = self.model.fit(X_train, y_train).predict(X_test)
         self.get_confusion_matrix_result(y_test, self.target_prod, "Decision Tree Classifier")
+        self.dt_visualisation()
 
-        #print(self.features)
+    def dt_visualisation(self):
+        viz = dtreeviz(self.model, self.features, self.target,
+                       target_name="target",
+                       feature_names=self.features_name,
+                       show_node_labels=True
+                       )
+        viz.save("decision_tree.svg")
 
-        '''dot_data = tree.export_graphviz(self.model, out_file=None,
-                                       #feature_names=self.features_name,
+    def dt_graphivz(self):
+
+        dot_data = tree.export_graphviz(self.model, out_file=None,
+                                       feature_names=self.features_name,
                                        class_names=None,
                                        filled=True)
 
         # Draw graph
         graph = graphviz.Source(dot_data, format="png")
-        graph.render("decision_tree_graphivz")'''
+        graph.render("decision_tree_graphivz")
 
-        '''fig = plt.figure()
-        _ = tree.plot_tree(self.model,
-                           feature_names=None,
-                           class_names=None,
-                           filled=True)'''
-
-        viz = dtreeviz(self.model,self.features, self.target,
-                       target_name="target",
-                       feature_names=self.features_name,
-                       show_node_labels=True,
-                       colors={"title": "purple"}
-                       )
-        viz.save("decision_tree.svg")
 
 
 if __name__ == '__main__':
@@ -172,3 +169,5 @@ if __name__ == '__main__':
 #download v2.49.0 (stable) from https://graphviz.org/download/
 #add to path
 #C:\Program Files\Graphviz
+#install oblique tree
+#https://pypi.org/project/scikit-obliquetree/
