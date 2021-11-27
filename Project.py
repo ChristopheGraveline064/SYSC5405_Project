@@ -136,6 +136,12 @@ class DecisionTree(Assignment):
         graph = graphviz.Source(dot_data, format="png")
         graph.render("decision_tree_graphivz")
 
+    def post_pruning(self, X_train, y_train):
+        pruning_path = self.data.cost_complexity_pruning_path(X_train, y_train)
+        alphas, impurities = pruning_path.ccp_alphas, pruning_path.impurities
+        _, ax2 = plt.subplots()
+        ax2.plot(alphas[:-1], impurities[:-1], marker="x", drawstyle="steps-post")
+
 
 
 if __name__ == '__main__':
