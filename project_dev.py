@@ -119,9 +119,12 @@ y_test.replace({False: 0, True: 1}, inplace=True)
 ensemble_model = XGBClassifier(use_label_encoder=False)#, max_depth =7)
 # ensemble_model = AdaBoostClassifier()#(max_depth = 7)
 # ensemble_model = BaggingClassifier()
+# ensemble_model = HistGradientBoostingClassifier()
+
+
+## TO TRY
 # ensemble_model = ExtraTreesClassifier()
 # ensemble_model = GradientBoostingClassifier()
-# ensemble_model = HistGradientBoostingClassifier()
 
 
 
