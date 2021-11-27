@@ -4,7 +4,7 @@ from sklearn.feature_selection import SelectKBest, chi2, SelectFromModel, f_clas
 from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 from sklearn.model_selection import cross_val_predict, train_test_split
-from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, ConfusionMatrixDisplay
+from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, ConfusionMatrixDisplay, PrecisionRecallDisplay, RocCurveDisplay
 from sklearn import tree
 #import sklearn
 import graphviz
@@ -88,8 +88,8 @@ class Assignment:
         Sp = TN / (TN+FP)
         print("Accuracy = {}, Precision = {}, Sensitivity = {}, Specificity = {}".format(ACC, PRE, Sn, Sp))
 
-    def roc_plot(self, scores):
-        fpr, tpr, thresholds = roc_curve(self.target, scores, pos_label=1)
+    def roc_plot(self, target, scores):
+        fpr, tpr, thresholds = roc_curve(target, scores, pos_label=1)
         roc_auc = auc(fpr, tpr)
         plt.figure()
         lw = 2
@@ -102,8 +102,8 @@ class Assignment:
         plt.title("Receiver operating characteristic")
         plt.legend(loc="lower right")
 
-    def precision_recall_curve_plot(self, scores):
-        precision, recall, thresholds = precision_recall_curve(self.target, scores)
+    def precision_recall_curve_plot(self,target ,scores):
+        precision, recall, thresholds = precision_recall_curve(target, scores, pos_label=1)
         plt.figure()
         lw = 2
         plt.plot(precision, recall, color="darkorange", lw=lw, label="Precision Recall Curve", )
@@ -119,18 +119,38 @@ class Assignment:
 class DecisionTree(Assignment):
     def __init__(self, data, fold=5):
         super().__init__(data)
-        #self.features = self.select_k_best()
+        self.features = self.select_k_best()
         #self.model = tree.DecisionTreeClassifier(max_depth=3,min_samples_split=2, criterion="gini")
         self.model = BaggingRegressor(
-                HouseHolderCART(MSE(), MeanSegmentor(), max_depth=3),
-                100,
-                n_jobs=-1,
+                HouseHolderCART(MSE(), MeanSegmentor(), max_depth=12),
+                n_estimators=100,
+                n_jobs=5,
             )
+        '''self.model = BaggingRegressor(
+            ContinuouslyOptimizedObliqueRegressionTree(
+                MSE(), MeanSegmentor(), thau=500, max_iter=100, max_depth=3
+            ),
+            100,
+            n_jobs=-1,
+        )'''
 
         #self.target_prod = cross_val_predict(self.model, self.features, self.target, cv=fold)
-        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, stratify=self.target)
-        self.target_prod = self.model.fit(X_train, y_train).predict(X_test)
-        self.get_confusion_matrix_result(y_test, self.target_prod, "Decision Tree Classifier")
+        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.1, stratify=self.target)
+        #y_train.replace({'False': 0, 'True': 1}, inplace=True)
+        #y_test.replace({'False': 0, 'True': 1}, inplace=True)
+        self.model.fit(X_train, y_train)
+        self.target_pred = self.model.predict(X_test)
+        print(self.target_pred)
+        #self.target_prod = self.model.predict_proba(X_test)
+        #print(self.target_prod)
+
+        #self.get_confusion_matrix_result(y_test, self.target_pred, "Decision Tree Classifier")
+
+        self.roc_plot(y_test, self.target_pred)
+        self.precision_recall_curve_plot(y_test, self.target_pred)
+
+        #PrecisionRecallDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
+        #RocCurveDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
         #self.dt_visualisation()
 
     def dt_visualisation(self):
