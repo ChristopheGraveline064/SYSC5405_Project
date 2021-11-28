@@ -20,9 +20,13 @@ from sklearn import model_selection
 from sklearn.datasets import load_boston
 from sklearn.ensemble import (
     BaggingClassifier,
+    BaggingRegressor,
     GradientBoostingClassifier,
     RandomForestClassifier,
+    VotingClassifier,
+    ExtraTreesClassifier
 )
+from xgboost import XGBClassifier, XGBRFClassifier
 
 class Assignment:
     def __init__(self, data_file):
@@ -124,16 +128,21 @@ class Assignment:
 
 
 class DecisionTree(Assignment):
-    def __init__(self, data, fold=5, model=tree.DecisionTreeRegressor(max_depth=8)):
+    def __init__(self, data, fold=5, model=tree.DecisionTreeRegressor(max_depth=8), eval='', regression=False):
         super().__init__(data)
         #self.features = self.select_k_best()
         self.model = model
 
         #self.target_prod = cross_val_predict(self.model, self.features, self.target, cv=fold)
-        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.1)
-        #y_train.replace({'False': 0, 'True': 1}, inplace=True)
-        #y_test.replace({'False': 0, 'True': 1}, inplace=True)
-        self.model.fit(X_train, y_train)
+        if regression:
+            pass
+        else:
+            X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.33, stratify=self.target)
+
+        try:
+            self.model.fit(X_train, y_train, eval_metric='aucpr')
+        except:
+            self.model.fit(X_train, y_train)
         try:
             self.target_pred = self.model.predict(X_test)
             self.get_confusion_matrix_result(y_test, self.target_pred, "Decision Tree Classifier")
@@ -196,18 +205,23 @@ if __name__ == '__main__':
 
 
     kfold = 10
-    Classifier = DecisionTree(data, kfold, BaggingClassifier(n_estimators=100, random_state=0))
+    boost = XGBClassifier(use_label_encoder=False, max_depth=6, learning_rate=0.3, n_estimators=500, scale_pos_weight=1.5)
+    Classifier = DecisionTree(data, kfold, boost)
+    Classifier1 = DecisionTree(data, kfold, XGBClassifier(use_label_encoder=False))
+    Classifier2 = DecisionTree(data, kfold, VotingClassifier(estimators=[('xgb', boost), ('et', ExtraTreesClassifier())], voting='soft'))
+    #Classifier = DecisionTree(data, kfold, BaggingClassifier(n_estimators=100, random_state=0))
+    #Classifier = DecisionTree(data, kfold, GradientBoostingClassifier())
+    #Classifier = DecisionTree(data, kfold, tree.DecisionTreeClassifier())
+
+
     # RandomForestClassifier(max_depth=8)
-    # GradientBoostingClassifier(max_depth=8)
-    # tree.DecisionTreeClassifier(max_depth=3,min_samples_split=2, criterion="gini")
     # tree.DecisionTreeRegressor(max_depth=8)
-    # BaggingClassifier(n_estimators=100, random_state=0)
-    ''' BaggingRegressor(
+    model = BaggingRegressor(
             HouseHolderCART(MSE(), MeanSegmentor(), max_depth=12),
             n_estimators=100,
             n_jobs=5,
-        )'''
-    ''' BaggingRegressor(
+        )
+    BaggingRegressor(
         BUTIF(
             linear_model=LogisticRegression(max_iter=10000),
             task="regression",
@@ -215,14 +229,15 @@ if __name__ == '__main__':
         ),
         10,
         n_jobs=5,            
-    )'''
-    ''' BaggingRegressor(
+    )
+    BaggingRegressor(
         ContinuouslyOptimizedObliqueRegressionTree(
             MSE(), MeanSegmentor(), thau=500, max_iter=100, max_depth=8
         ),
         100,
         n_jobs=-1,
-    )'''
+    )
+    #Classifier = DecisionTree(data, kfold, model)
     plt.show()
 
 
