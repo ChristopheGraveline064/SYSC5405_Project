@@ -16,11 +16,17 @@ from sklearn.decomposition import PCA
 
 dataset = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\train_data.csv")
 
+d2 = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\imp_feat.csv")
 
+imp = d2.iloc[:,1].tolist()[:50]
+# print(imp)
 
 # print("Any NaN value in the dataset: ", dataset.isnull().values.any())
-# print("Class", Counter(dataset.Label))
+print("Class", Counter(dataset.Label))
 # print("Unique columns: ", len(set(dataset.columns)))
+
+# sc_pos = Counter(dataset.Label == 0)/Counter(dataset.Label == 1)
+# print("scale pos: ", 86324/23155)#/)
 
 # # print(dataset.shape)    
 
@@ -71,42 +77,40 @@ dataset = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Cl
 # X = X[l]
 # print(X.shape)
 
+############################
+
+# y = dataset.Label
+# # X = dataset.drop("Label",axis="columns")
+# X = dataset.drop(["Label","KIBA"],axis="columns")
+# # X = dataset.iloc[:,:13]
+# # X.head()
 
 y = dataset.Label
-# X = dataset.drop("Label",axis="columns")
 X = dataset.drop(["Label","KIBA"],axis="columns")
-# X = dataset.iloc[:,:13]
-# X.head()
+X = dataset[imp]
+
+print(X.shape)
+
+# data_per_group = []
+
+# for i in range(0,336,14):
+
+#     data_per_group.append(X.iloc[:,i:i+14])
+
+#     # print(i,i+14)
+
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33, stratify=y)#random_state=2)#,shuffle=True)#, 
 
 
 
-
-# a = np.sum(X.iloc[2,:],axis = 0)
-# print(a/336)
-
-## Applting PCA
-
-# pca_X = PCA(n_components=200)
-# X = pca_X.fit_transform(X)
-# print(X.shape)
-# X.head()
-
-# X = SelectPercentile(X, percentile=30)
-
-# sns.histplot(X.iloc[:,2])
-
-# corr = X.corr()
-# fig, ax = plt.subplots(figsize=(24, 18))
-# sns.heatmap(corr, ax=ax)
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33,random_state = 7, stratify=y)#random_state=2)#,shuffle=True)#, 
+# data_per_group[-1].head()
 
 
-#%%
+
 ## AVENGERS "ENSEMBLE"
 
 from xgboost import XGBClassifier, XGBRFClassifier
 from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier
-
 
 ## encoding labels
 # print(y_test[:10])
@@ -116,7 +120,7 @@ y_test.replace({False: 0, True: 1}, inplace=True)
 
 # print(y_test[:10])
 
-ensemble_model = XGBClassifier(use_label_encoder=False)#, max_depth =7)
+ensemble_model = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 100)#, scale_pos_weight = 2)#, eval_metric = "error" #"logloss")#, max_depth =7)
 # ensemble_model = AdaBoostClassifier()#(max_depth = 7)
 # ensemble_model = BaggingClassifier()
 # ensemble_model = HistGradientBoostingClassifier()
@@ -130,36 +134,120 @@ ensemble_model = XGBClassifier(use_label_encoder=False)#, max_depth =7)
 
 # ensemble_modelrf = XGBRFClassifier()
 
-ensemble_model.fit(X_train,y_train)
-# ensemble_model.fit(X_train,y_train, eval_metric='aucpr')
+# ensemble_model.fit(X_train,y_train)
+ensemble_model.fit(X_train,y_train, eval_metric='aucpr')
+# ensemble_model.fit(X_train,y_train, eval_metric='map')
 
+# kf = pd.DataFrame({'Variable':X.columns,
+#               'Importance':ensemble_model.feature_importances_}).sort_values('Importance', ascending=False)
+
+
+# print(kf.to_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\imp_feat_xgb.csv"))
 
 # ensemble_modelrf.fit(X_train,y_train)
 
 pred_y = ensemble_model.predict(X_test)
+pred_y_prob = ensemble_model.predict_proba(X_test)[:,1]
+
 # pred_y = ensemble_modelrf.predict(X_test)
 
-cm = confusion_matrix(y_test,pred_y)
-tn,fp,fn,tp = cm.ravel()
-# print(tn,fp,fn,tp)
-# print("Before pruning:\n")
-print("After pruning:\n")
-print("Accuracy: ",(tp+tn)/(tp+tn+fp+fn))
-print("Precision: ", tp/(tp+fp))
-print("Recall: ", tp/(tp+fn))
-print("Sensitivity: ", tp/(tp+fn))
-print("Specificity: ",tn/(tn+fp))
-pr = tp/(tp+fp)
-rc = tp/(tp+fn)
-print("F1 score: ", (2*pr*rc)/(pr+rc))
+# cm = confusion_matrix(y_test,pred_y)
+# tn,fp,fn,tp = cm.ravel()
+# # print(tn,fp,fn,tp)
+# # print("Before pruning:\n")
+# print("After pruning:\n")
+# print("Accuracy: ",(tp+tn)/(tp+tn+fp+fn))
+# print("Precision: ", tp/(tp+fp))
+# print("Recall: ", tp/(tp+fn))
+# print("Sensitivity: ", tp/(tp+fn))
+# print("Specificity: ",tn/(tn+fp))
+# pr = tp/(tp+fp)
+# rc = tp/(tp+fn)
+# print("F1 score: ", (2*pr*rc)/(pr+rc))
+
+PrecisionRecallDisplay.from_predictions(y_test,pred_y_prob,pos_label=1)
+ConfusionMatrixDisplay.from_predictions(y_test,pred_y)   
+RocCurveDisplay.from_predictions(y_test,pred_y_prob,pos_label=1)
 
 
 # ##ensemble_model
-PrecisionRecallDisplay.from_estimator(ensemble_model,X_test,y_test,pos_label=1)
-ConfusionMatrixDisplay.from_estimator(ensemble_model,X_test,y_test)
-RocCurveDisplay.from_estimator(ensemble_model,X_test,y_test,pos_label=1)
+# PrecisionRecallDisplay.from_estimator(ensemble_model,X_test,y_test,pos_label=1)
+# ConfusionMatrixDisplay.from_estimator(ensemble_model,X_test,y_test)
+# RocCurveDisplay.from_estimator(ensemble_model,X_test,y_test,pos_label=1)
 
 
+#%%
+from xgboost import XGBClassifier, XGBRFClassifier
+from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier
+conf_mat_x = []
+pred_per_group = []
+kkkk = 0
+for i in data_per_group:
+    X_train, X_test, y_train, y_test = train_test_split(i,y,test_size=0.33, stratify=y)#random_state=2)#,shuffle=True)#, 
+   
+    ## encoding labels
+    # print(y_test[:10])
+
+    y_train.replace({False: 0, True: 1}, inplace=True)
+    y_test.replace({False: 0, True: 1}, inplace=True)
+
+    # print(y_test[:10])
+    # ensemble_model = DecisionTreeClassifier(max_depth=7)
+
+    ensemble_model = XGBClassifier(use_label_encoder=False)#, scale_pos_weight = 2)#, eval_metric = "error" #"logloss")#, max_depth =7)
+
+    ensemble_model.fit(X_train,y_train)
+   
+    pred_y = ensemble_model.predict_proba(X_test)
+    kkkk+=pred_y
+    pred_per_group.append(pred_y)
+    pred2 = ensemble_model.predict(X_test)
+
+    conf_mat_x.append(confusion_matrix(y_test,pred2))
+
+
+#%%
+# print(kkkk[:,1]/24)
+# print(np.sum(pred_per_group,axis=0))
+
+finale = np.argmax(pred_per_group,axis =0)
+
+finale = finale[:,1]/24
+print(finale)
+
+PrecisionRecallDisplay.from_predictions(y_test,finale,pos_label=1)
+
+# conf_mat_overall = np.sum(conf_mat_x, axis=0)
+# conf_mat_overall_disp = ConfusionMatrixDisplay(np.sum(conf_mat_x, axis=0))
+# conf_mat_overall_disp.plot(colorbar=False)
+# plt.title("DT classifier per group (24) (after 5 folds)")
+# plt.title("XGB classifier per group (24) (after 5 folds)")
+
+##
+#%%
+from sklearn.ensemble import VotingClassifier
+y = dataset.Label
+X = dataset.drop(["Label","KIBA"],axis="columns")
+
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33, stratify=y)#random_state=2)#,shuffle=True)#, 
+
+from xgboost import XGBClassifier, XGBRFClassifier
+from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier
+
+ensem = VotingClassifier(estimators=[('xgb', XGBClassifier()), ('et', ExtraTreesClassifier())], voting='soft') 
+
+
+y_train.replace({False: 0, True: 1}, inplace=True)
+y_test.replace({False: 0, True: 1}, inplace=True)
+
+ensem.fit(X_train,y_train)
+
+pred_y = ensem.predict_proba(X_test)
+pred2 = ensem.predict(X_test)
+#%%
+PrecisionRecallDisplay.from_predictions(y_test,pred_y[:,1],pos_label=1)
+ConfusionMatrixDisplay.from_predictions(y_test,pred2)   
+RocCurveDisplay.from_predictions(y_test,pred_y[:,1],pos_label=1)
 
 
 #%%
