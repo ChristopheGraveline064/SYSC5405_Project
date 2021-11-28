@@ -106,7 +106,7 @@ X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33, stratify
 # data_per_group[-1].head()
 
 
-
+#%%
 ## AVENGERS "ENSEMBLE"
 
 from xgboost import XGBClassifier, XGBRFClassifier
@@ -120,10 +120,17 @@ y_test.replace({False: 0, True: 1}, inplace=True)
 
 # print(y_test[:10])
 
-ensemble_model = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 100)#, scale_pos_weight = 2)#, eval_metric = "error" #"logloss")#, max_depth =7)
+ensemble_model = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 500, scale_pos_weight = 1.5)#, eval_metric = "error" #"logloss")#, max_depth =7)
+
+# ensemble_model = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 1000, scale_pos_weight = 1.5)#, eval_metric = "error" #"logloss")#, max_depth =7)
+
 # ensemble_model = AdaBoostClassifier()#(max_depth = 7)
 # ensemble_model = BaggingClassifier()
 # ensemble_model = HistGradientBoostingClassifier()
+
+
+# ensemble_model = DecisionTreeClassifier()#(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 100)#, scale_pos_weight = 2)#, eval_metric = "error" #"logloss")#, max_depth =7)
+
 
 
 ## TO TRY
@@ -132,10 +139,12 @@ ensemble_model = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_
 
 
 
-# ensemble_modelrf = XGBRFClassifier()
-
 # ensemble_model.fit(X_train,y_train)
 ensemble_model.fit(X_train,y_train, eval_metric='aucpr')
+
+
+# ensemble_modelrf = XGBRFClassifier()
+
 # ensemble_model.fit(X_train,y_train, eval_metric='map')
 
 # kf = pd.DataFrame({'Variable':X.columns,
