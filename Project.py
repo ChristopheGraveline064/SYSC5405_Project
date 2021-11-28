@@ -3,7 +3,8 @@ import seaborn
 from sklearn.feature_selection import SelectKBest, chi2, SelectFromModel, f_classif, mutual_info_classif, f_regression
 from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
-from sklearn.model_selection import cross_val_predict, train_test_split
+from sklearn.model_selection import cross_val_predict, train_test_split, RandomizedSearchCV
+from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, ConfusionMatrixDisplay, PrecisionRecallDisplay, RocCurveDisplay
 from sklearn import tree
 #import sklearn
@@ -130,7 +131,7 @@ class Assignment:
 class DecisionTree(Assignment):
     def __init__(self, data, fold=5, model=tree.DecisionTreeRegressor(max_depth=8), eval='', regression=False):
         super().__init__(data)
-        #self.features = self.select_k_best()
+        #self.features = self.feature_select()
         self.model = model
 
         #self.target_prod = cross_val_predict(self.model, self.features, self.target, cv=fold)
@@ -184,7 +185,15 @@ class DecisionTree(Assignment):
         _, ax2 = plt.subplots()
         ax2.plot(alphas[:-1], impurities[:-1], marker="x", drawstyle="steps-post")
 
-
+class Param(Assignment):
+    def __init__(self,clf, data, param):
+        super().__init__(data)
+        self.model = RandomizedSearchCV(clf, param_distributions=param, cv=5)
+        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.33, stratify=self.target)
+        self.model.fit(X_train, y_train)
+        dt_opt = self.model.best_estimator_
+        print("Parameter: ")
+        print(dt_opt)
 
 if __name__ == '__main__':
     print("Panda version = " + pd.__version__)
@@ -197,46 +206,47 @@ if __name__ == '__main__':
     data_path = './Data/'
 
     data = data_path + csv_file
-    #csv_file = 'assigData4.csv'
+    kfold = 5
 
-    #a4 = Assignment(data)
-    #feature_to_compare = [1, 2]
-    #a4.plot_scatterplot(feature_to_compare[0], feature_to_compare[1])
+    tree = tree.DecisionTreeClassifier(criterion="entropy", min_samples_split=6, min_samples_leaf=4, max_depth=7, max_features="sqrt")
 
+    '''clf = GradientBoostingClassifier()
+    hyp_pam = {
+        "loss": ("deviance", "exponential"),
+        "learning_rate": (0.1, 0.3, 0.6, 0.8, 1),
+        "n_estimators": (10, 50, 100),
+        "criterion": ("friedman_mse", "squared_error", "mse", "mae"),
+        "max_depth": (2,4,6,8,10,20,30,50),
+    }
+    Classifier = Param(clf, data, hyp_pam)'''
 
-    kfold = 10
-    boost = XGBClassifier(use_label_encoder=False, max_depth=6, learning_rate=0.3, n_estimators=500, scale_pos_weight=1.5)
-    Classifier = DecisionTree(data, kfold, boost)
-    Classifier1 = DecisionTree(data, kfold, XGBClassifier(use_label_encoder=False))
-    Classifier2 = DecisionTree(data, kfold, VotingClassifier(estimators=[('xgb', boost), ('et', ExtraTreesClassifier())], voting='soft'))
+    #RandomForestClassifier,
+    #SVM
+
+    '''clf = ExtraTreesClassifier(  n_estimators=200)
+    hyp_pam = {
+               #"n_estimators": (10, 20, 50, 100, 200),
+               "criterion": ("gini", "entropy"),
+               "max_features": ("auto", "sqrt", "log2"),
+               "min_samples_split": (2, 4, 6, 8),
+               "max_depth": (60, 100 , 150, 200),
+               }
+
+    Classifier = Param(clf, data, hyp_pam)'''
+
+    xgb = XGBClassifier(use_label_encoder=False, max_depth=6, learning_rate=0.3, n_estimators=500, scale_pos_weight=1.5)
+    et = ExtraTreesClassifier(max_depth=6)
+    bag = BaggingClassifier(tree, n_estimators=100, bootstrap=False, bootstrap_features=True)
+    rf = BaggingClassifier(RandomForestClassifier(max_depth=7), n_estimators=50)
+    #Classifier = DecisionTree(data, kfold, xgb)
+    #Classifier1 = DecisionTree(data, kfold, XGBClassifier(use_label_encoder=False))
+    Classifier2 = DecisionTree(data, kfold, model=VotingClassifier(estimators=[('xgb', xgb), ('et', et), ('bag', bag), ('rf', rf)], voting='soft'))
     #Classifier = DecisionTree(data, kfold, BaggingClassifier(n_estimators=100, random_state=0))
     #Classifier = DecisionTree(data, kfold, GradientBoostingClassifier())
     #Classifier = DecisionTree(data, kfold, tree.DecisionTreeClassifier())
 
-
     # RandomForestClassifier(max_depth=8)
     # tree.DecisionTreeRegressor(max_depth=8)
-    model = BaggingRegressor(
-            HouseHolderCART(MSE(), MeanSegmentor(), max_depth=12),
-            n_estimators=100,
-            n_jobs=5,
-        )
-    BaggingRegressor(
-        BUTIF(
-            linear_model=LogisticRegression(max_iter=10000),
-            task="regression",
-            max_leaf=8,
-        ),
-        10,
-        n_jobs=5,            
-    )
-    BaggingRegressor(
-        ContinuouslyOptimizedObliqueRegressionTree(
-            MSE(), MeanSegmentor(), thau=500, max_iter=100, max_depth=8
-        ),
-        100,
-        n_jobs=-1,
-    )
     #Classifier = DecisionTree(data, kfold, model)
     plt.show()
 
