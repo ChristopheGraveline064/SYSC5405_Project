@@ -1,6 +1,7 @@
 #%%
 
 
+from numpy.lib.polynomial import poly
 import pandas as pd
 import numpy as np
 import scipy.stats as sst
@@ -99,8 +100,9 @@ print(X.shape)
 
 #     # print(i,i+14)
 
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33, stratify=y)#random_state=2)#,shuffle=True)#, 
+# X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33, stratify=y)#random_state=2)#,shuffle=True)#, 
 
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.5, stratify=y)#random_state=2)#,shuffle=True)#, 
 
 
 # data_per_group[-1].head()
@@ -110,8 +112,9 @@ X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33, stratify
 ## AVENGERS "ENSEMBLE"
 
 from xgboost import XGBClassifier, XGBRFClassifier
-from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier
-
+from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier, VotingClassifier
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
 ## encoding labels
 # print(y_test[:10])
 
@@ -125,69 +128,132 @@ y_test.replace({False: 0, True: 1}, inplace=True)
 ## Need to tune the weight [1.2, 1.5 give good performance], depth, learning rate
 ##Tuned : No. of trees = 500, using the most important features
 
-ensemble_model = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 700, scale_pos_weight = 1.5)# scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
+xgb = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 700, scale_pos_weight = 1.5)# scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
 
-# ensemble_model = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 1000, scale_pos_weight = 1.5)#, eval_metric = "error" #"logloss")#, max_depth =7)
+lr = LogisticRegression()
+sv = SVC(kernel= "poly", probability=True)
+et = ExtraTreesClassifier()
 
-# ensemble_model = AdaBoostClassifier()#(max_depth = 7)
-# ensemble_model = BaggingClassifier()
-# ensemble_model = HistGradientBoostingClassifier()
+## very computationally expensive to run all four
+
+## SVM take hell of a time
+
+# models = [('xgb',xgb),('lr',lr),('svm',sv),('et',et)]
+
+## Try different combos
+
+# models = [('xgb',xgb),('lr',lr),('svm',sv)]
+
+# models = [('lr',lr),('svm',sv),('et',et)]
+
+# models = [('xgb',xgb),('lr',lr),('et',et)]
+## Okayish
+# Accuracy:  0.8529046401169164
+# Precision:  0.8425961912164788
+# Recall:  0.3745033684574192
+# Sensitivity:  0.3745033684574192
+# Specificity:  0.9812334924238914
+# F1 score:  0.5185362353503945
+
+# models = [('xgb',xgb),('svm',sv),('et',et)]
 
 
-# ensemble_model = DecisionTreeClassifier()#(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 100)#, scale_pos_weight = 2)#, eval_metric = "error" #"logloss")#, max_depth =7)
+
+models = [('xgb',xgb), ('et',et)]
+# Accuracy:  0.8665327000365364
+# Precision:  0.7812006319115324
+# Recall:  0.5125237519433408
+# Sensitivity:  0.5125237519433408
+# Specificity:  0.9614939066771697
+# F1 score:  0.6189631793053092
+
+
+
+# models = [('xgb',xgb),('lr',lr)] 
+## Gives Accuracy:  0.8537084398976982
+# Precision:  0.8259678597516436
+# Recall:  0.390654689929176
+# Sensitivity:  0.390654689929176
+# Specificity:  0.9779203929382327
+# F1 score:  0.5304327430514835
+
+# models = [('lr',lr),('et',et)]
+# ## disgusting performance 
+
+
+# models = [('svm',sv),('et',et)]
+
+# models = [('xgb',xgb),('svm',sv)] 
+
+
+
+
+
+vc = VotingClassifier(estimators=models, voting="soft")
+
+# vc = sv
+
+# xgb = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 1000, scale_pos_weight = 1.5)#, eval_metric = "error" #"logloss")#, max_depth =7)
+
+# xgb = AdaBoostClassifier()#(max_depth = 7)
+# xgb = BaggingClassifier()
+# xgb = HistGradientBoostingClassifier()
+
+
+# xgb = DecisionTreeClassifier()#(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 100)#, scale_pos_weight = 2)#, eval_metric = "error" #"logloss")#, max_depth =7)
 
 
 
 ## TO TRY
-# ensemble_model = ExtraTreesClassifier()
-# ensemble_model = GradientBoostingClassifier()
+# xgb = ExtraTreesClassifier()
+# xgb = GradientBoostingClassifier()
 
 
 
-# ensemble_model.fit(X_train,y_train)
-ensemble_model.fit(X_train,y_train, eval_metric='aucpr')
+vc.fit(X_train,y_train)
+# vc.fit(X_train,y_train, eval_metric='aucpr')
 
 
-# ensemble_modelrf = XGBRFClassifier()
+# xgbrf = XGBRFClassifier()
 
-# ensemble_model.fit(X_train,y_train, eval_metric='map')
+# xgb.fit(X_train,y_train, eval_metric='map')
 
 # kf = pd.DataFrame({'Variable':X.columns,
-#               'Importance':ensemble_model.feature_importances_}).sort_values('Importance', ascending=False)
+#               'Importance':xgb.feature_importances_}).sort_values('Importance', ascending=False)
 
 
 # print(kf.to_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\imp_feat_xgb.csv"))
 
-# ensemble_modelrf.fit(X_train,y_train)
+# xgbrf.fit(X_train,y_train)
 
-pred_y = ensemble_model.predict(X_test)
-pred_y_prob = ensemble_model.predict_proba(X_test)[:,1]
+pred_y = vc.predict(X_test)
+pred_y_prob = vc.predict_proba(X_test)[:,1]
 
-# pred_y = ensemble_modelrf.predict(X_test)
+# pred_y = xgbrf.predict(X_test)
 
-# cm = confusion_matrix(y_test,pred_y)
-# tn,fp,fn,tp = cm.ravel()
-# # print(tn,fp,fn,tp)
-# # print("Before pruning:\n")
+cm = confusion_matrix(y_test,pred_y)
+tn,fp,fn,tp = cm.ravel()
+# print(tn,fp,fn,tp)
+# print("Before pruning:\n")
 # print("After pruning:\n")
-# print("Accuracy: ",(tp+tn)/(tp+tn+fp+fn))
-# print("Precision: ", tp/(tp+fp))
-# print("Recall: ", tp/(tp+fn))
-# print("Sensitivity: ", tp/(tp+fn))
-# print("Specificity: ",tn/(tn+fp))
-# pr = tp/(tp+fp)
-# rc = tp/(tp+fn)
-# print("F1 score: ", (2*pr*rc)/(pr+rc))
+print("Accuracy: ",(tp+tn)/(tp+tn+fp+fn))
+print("Precision: ", tp/(tp+fp))
+print("Recall: ", tp/(tp+fn))
+print("Sensitivity: ", tp/(tp+fn))
+print("Specificity: ",tn/(tn+fp))
+pr = tp/(tp+fp)
+rc = tp/(tp+fn)
+print("F1 score: ", (2*pr*rc)/(pr+rc))
 
 PrecisionRecallDisplay.from_predictions(y_test,pred_y_prob,pos_label=1)
 ConfusionMatrixDisplay.from_predictions(y_test,pred_y)   
 RocCurveDisplay.from_predictions(y_test,pred_y_prob,pos_label=1)
 
 
-# ##ensemble_model
-# PrecisionRecallDisplay.from_estimator(ensemble_model,X_test,y_test,pos_label=1)
-# ConfusionMatrixDisplay.from_estimator(ensemble_model,X_test,y_test)
-# RocCurveDisplay.from_estimator(ensemble_model,X_test,y_test,pos_label=1)
+# ##xgb
+# PrecisionRecallDisplay.from_estimator(xgb,X_test,y_test,pos_label=1)
+# ConfusionMatrixDisplay.from_estimator(xgb,X_test,y_test)
+# RocCurveDisplay.from_estimator(xgb,X_test,y_test,pos_label=1)
 
 
 #%%
@@ -206,16 +272,16 @@ for i in data_per_group:
     y_test.replace({False: 0, True: 1}, inplace=True)
 
     # print(y_test[:10])
-    # ensemble_model = DecisionTreeClassifier(max_depth=7)
+    # xgb = DecisionTreeClassifier(max_depth=7)
 
-    ensemble_model = XGBClassifier(use_label_encoder=False)#, scale_pos_weight = 2)#, eval_metric = "error" #"logloss")#, max_depth =7)
+    xgb = XGBClassifier(use_label_encoder=False)#, scale_pos_weight = 2)#, eval_metric = "error" #"logloss")#, max_depth =7)
 
-    ensemble_model.fit(X_train,y_train)
+    xgb.fit(X_train,y_train)
    
-    pred_y = ensemble_model.predict_proba(X_test)
+    pred_y = xgb.predict_proba(X_test)
     kkkk+=pred_y
     pred_per_group.append(pred_y)
-    pred2 = ensemble_model.predict(X_test)
+    pred2 = xgb.predict(X_test)
 
     conf_mat_x.append(confusion_matrix(y_test,pred2))
 
