@@ -120,7 +120,12 @@ y_test.replace({False: 0, True: 1}, inplace=True)
 
 # print(y_test[:10])
 
-ensemble_model = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 500, scale_pos_weight = 1.5)#, eval_metric = "error" #"logloss")#, max_depth =7)
+## Accuracy is really good (because of the imbalance)
+### Choose the parameters that increase tp and decrease fp
+## Need to tune the weight [1.2, 1.5 give good performance], depth, learning rate
+##Tuned : No. of trees = 500, using the most important features
+
+ensemble_model = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 700, scale_pos_weight = 1.5)# scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
 
 # ensemble_model = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 1000, scale_pos_weight = 1.5)#, eval_metric = "error" #"logloss")#, max_depth =7)
 
