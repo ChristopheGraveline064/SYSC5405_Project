@@ -112,9 +112,10 @@ X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.5, stratify=
 ## AVENGERS "ENSEMBLE"
 
 from xgboost import XGBClassifier, XGBRFClassifier
-from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier, VotingClassifier
+from sklearn.ensemble import StackingClassifier, AdaBoostClassifier, BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier, VotingClassifier
 from sklearn.svm import SVC
 from sklearn.linear_model import LogisticRegression
+from sklearn.neural_network import MLPClassifier
 ## encoding labels
 # print(y_test[:10])
 
@@ -133,6 +134,8 @@ xgb = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3,
 lr = LogisticRegression()
 sv = SVC(kernel= "poly", probability=True)
 et = ExtraTreesClassifier()
+mlp = MLPClassifier(max_iter=300)
+
 
 ## very computationally expensive to run all four
 
@@ -185,11 +188,12 @@ models = [('xgb',xgb), ('et',et)]
 
 # models = [('xgb',xgb),('svm',sv)] 
 
-
-
-
+# vc = mlp
 
 vc = VotingClassifier(estimators=models, voting="soft")
+# 
+# vc = StackingClassifier(estimators=models, final_estimator=lr)
+
 
 # vc = sv
 
@@ -210,8 +214,11 @@ vc = VotingClassifier(estimators=models, voting="soft")
 
 
 
+
 vc.fit(X_train,y_train)
-# vc.fit(X_train,y_train, eval_metric='aucpr')
+
+
+# xgb.fit(X_train,y_train, eval_metric='aucpr')
 
 
 # xgbrf = XGBRFClassifier()
@@ -225,6 +232,10 @@ vc.fit(X_train,y_train)
 # print(kf.to_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\imp_feat_xgb.csv"))
 
 # xgbrf.fit(X_train,y_train)
+
+# pred_y = xgb.predict(X_test)
+# pred_y_prob = xgb.predict_proba(X_test)[:,1]
+
 
 pred_y = vc.predict(X_test)
 pred_y_prob = vc.predict_proba(X_test)[:,1]
