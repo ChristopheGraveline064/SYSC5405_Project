@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import cross_val_predict, train_test_split, RandomizedSearchCV
 from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, ConfusionMatrixDisplay, PrecisionRecallDisplay, RocCurveDisplay
+from sklearn.svm import SVC
 from sklearn import tree
 #import sklearn
 import graphviz
@@ -28,12 +29,13 @@ from sklearn.ensemble import (
     ExtraTreesClassifier
 )
 from xgboost import XGBClassifier, XGBRFClassifier
+import numpy as np
 
 class Assignment:
     def __init__(self, data_file):
+
         self.data = self.load_data(data_file)
         self.features = self.data.iloc[:, 0:-2]
-        #self.features = self.data.iloc[:, 0:13]
         self.target = self.data.iloc[:, -1]
         self.features_name = list(self.features)
 
@@ -44,6 +46,13 @@ class Assignment:
             #return pd.read_csv(data, header=None)
         except:
             return None
+
+    def log_csv(self, log):
+        df = pd.DataFrame(data=log)
+        df.index += 1
+        df.to_csv('Group10_blind_predictions.csv', index=True, header=False)
+
+        #np.savetxt("Group10_blind_predictions.csv", log, delimiter=",")
 
     def plot_distribution(self, feature):
         #use seaborn
@@ -109,9 +118,18 @@ class Assignment:
 
     def precision_recall_curve_plot(self,target ,scores):
         precision, recall, thresholds = precision_recall_curve(target, scores, pos_label=1)
+        precision_inv = precision[::-1]
+        recall_inv = recall[::-1]
+        pr_res = np.interp(0.5, recall_inv, precision_inv)
+        #pr_res = round(pr_res, 3)
+        print("PR Score:" + str(pr_res))
+
         plt.figure()
+        plt.axvline(0.5, 0, color="black", linestyle="dotted", label="Recall=0.5")
+        plt.axhline(pr_res, 0, color="black", linestyle="dotted",
+                    label=f"Precision={pr_res}")
         lw = 2
-        plt.plot(precision, recall, color="darkorange", lw=lw, label="Precision Recall Curve", )
+        plt.plot(recall, precision, color="darkorange", lw=lw, label="Precision Recall Curve", )
         plt.plot([0, 1], [0.5, 0.5], color="navy", lw=lw, linestyle="--")
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.0])
@@ -129,7 +147,7 @@ class Assignment:
 
 
 class DecisionTree(Assignment):
-    def __init__(self, data, fold=5, model=tree.DecisionTreeRegressor(max_depth=8), eval='', regression=False):
+    def __init__(self, data, fold=5, model=tree.DecisionTreeRegressor(max_depth=8), eval='', regression=False, log=False):
         super().__init__(data)
         #self.features = self.feature_select()
         self.model = model
@@ -149,13 +167,15 @@ class DecisionTree(Assignment):
             self.get_confusion_matrix_result(y_test, self.target_pred, "Decision Tree Classifier")
         except:
             print("cannot get the prediction or display the confusion matrix")
-        try:
-            self.target_prod = self.model.predict_proba(X_test)
-            self.roc_plot(y_test, self.target_prod[:,1])
-            self.precision_recall_curve_plot(y_test, self.target_prod[:,1])
-        except:
-            print("cannot get the probability or display the roc or prc")
+        #try:
+        self.target_prod = self.model.predict_proba(X_test)
+        self.roc_plot(y_test, self.target_prod[:,1])
+        self.precision_recall_curve_plot(y_test, self.target_prod[:,1])
+        #except:
+        #    print("cannot get the probability or display the roc or prc")
 
+        if log:
+            self.log_csv(self.target_prod[:,1])
         #PrecisionRecallDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
         #RocCurveDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
         #self.dt_visualisation()
@@ -238,9 +258,13 @@ if __name__ == '__main__':
     et = ExtraTreesClassifier(max_depth=6)
     bag = BaggingClassifier(tree, n_estimators=100, bootstrap=False, bootstrap_features=True)
     rf = BaggingClassifier(RandomForestClassifier(max_depth=7), n_estimators=50)
-    #Classifier = DecisionTree(data, kfold, xgb)
+    sv = SVC(probability=True, kernel="linear")
+    # ('bag', bag)
+    models = [('xgb', xgb), ('et', et), ('bag',bag), ('rf', rf)]
+    vc = VotingClassifier(estimators=models, voting='soft')
+    Classifier = DecisionTree(data, kfold, tree, log=True)
     #Classifier1 = DecisionTree(data, kfold, XGBClassifier(use_label_encoder=False))
-    Classifier2 = DecisionTree(data, kfold, model=VotingClassifier(estimators=[('xgb', xgb), ('et', et), ('bag', bag), ('rf', rf)], voting='soft'))
+
     #Classifier = DecisionTree(data, kfold, BaggingClassifier(n_estimators=100, random_state=0))
     #Classifier = DecisionTree(data, kfold, GradientBoostingClassifier())
     #Classifier = DecisionTree(data, kfold, tree.DecisionTreeClassifier())
