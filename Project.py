@@ -30,17 +30,25 @@ from sklearn.ensemble import (
 )
 from xgboost import XGBClassifier, XGBRFClassifier
 import numpy as np
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.linear_model import SGDClassifier
 
 class Assignment:
-    def __init__(self, data_file):
+    def __init__(self, data_file, profs_file=None, final_test=False):
 
+        self.final_test = final_test
         self.data = self.load_data(data_file)
         self.features = self.data.iloc[:, 0:-2]
         self.target = self.data.iloc[:, -1]
         self.features_name = list(self.features)
 
+        if self.final_test:
+            print("take the professors data")
+            self.test_data = self.load_data(profs_file)
+
     #data visualization
     def load_data(self, data):
+        print("load the csv")
         try:
             return pd.read_csv(data)
             #return pd.read_csv(data, header=None)
@@ -48,6 +56,7 @@ class Assignment:
             return None
 
     def log_csv(self, log):
+        print("log the data")
         df = pd.DataFrame(data=log)
         df.index += 1
         df.to_csv('Group10_blind_predictions.csv', index=True, header=False)
@@ -122,7 +131,7 @@ class Assignment:
         recall_inv = recall[::-1]
         pr_res = np.interp(0.5, recall_inv, precision_inv)
         #pr_res = round(pr_res, 3)
-        print("PR Score:" + str(pr_res))
+        print("PR Score at recall of 50 is:" + str(pr_res))
 
         plt.figure()
         plt.axvline(0.5, 0, color="black", linestyle="dotted", label="Recall=0.5")
@@ -151,17 +160,20 @@ class DecisionTree(Assignment):
         super().__init__(data)
         #self.features = self.feature_select()
         self.model = model
-
+        #TODO add kfold test
         #self.target_prod = cross_val_predict(self.model, self.features, self.target, cv=fold)
         if regression:
+            #TODO add a regression method and a metric to mesure its performance
             pass
         else:
             X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.33, stratify=self.target)
 
-        try:
+        self.model.fit(X_train, y_train)
+        '''try:
+            print("try to fit with aucpr")
             self.model.fit(X_train, y_train, eval_metric='aucpr')
         except:
-            self.model.fit(X_train, y_train)
+            self.model.fit(X_train, y_train)'''
         try:
             self.target_pred = self.model.predict(X_test)
             self.get_confusion_matrix_result(y_test, self.target_pred, "Decision Tree Classifier")
@@ -171,8 +183,12 @@ class DecisionTree(Assignment):
         self.target_prod = self.model.predict_proba(X_test)
         self.roc_plot(y_test, self.target_prod[:,1])
         self.precision_recall_curve_plot(y_test, self.target_prod[:,1])
-        #except:
+        # except:
         #    print("cannot get the probability or display the roc or prc")
+
+        if self.final_test:
+            print("Make prediction for the prof's data")
+            self.target_prod = self.model.predict_proba(self.test_data)
 
         if log:
             self.log_csv(self.target_prod[:,1])
@@ -260,11 +276,14 @@ if __name__ == '__main__':
     #rf = BaggingClassifier(RandomForestClassifier(max_depth=7), n_estimators=50)
     #sv = SVC(probability=True, kernel="linear")
     # ('bag', bag)
-    xgb = XGBClassifier(use_label_encoder=False, n_estimators=450, max_depth=20, learning_rate=0.075, subsample=1.0,
-                        gamma=0, colsample_bytree=0.1)
+    #xgb = XGBClassifier(use_label_encoder=False, n_estimators=450, max_depth=20, learning_rate=0.075, subsample=1.0, gamma=0, colsample_bytree=0.1)
     xtr = ExtraTreesClassifier(n_estimators=150, max_features="log2", min_samples_split=5)
 
-    models = [('xgb', xgb), ('et', xtr)]
+    xgb = XGBClassifier(use_label_encoder=False, max_depth=20, learning_rate=0.075, n_estimators=450,
+                        scale_pos_weight=1.5)
+    sgd = CalibratedClassifierCV(SGDClassifier(max_iter=1000, tol=1e-3, loss='hinge'))
+
+    models = [('xgb', xgb), ('et', xtr), ('sgd', sgd)]
     vc = VotingClassifier(estimators=models, voting='soft')
     Classifier = DecisionTree(data, kfold, vc, log=True)
     #Classifier1 = DecisionTree(data, kfold, XGBClassifier(use_label_encoder=False))
