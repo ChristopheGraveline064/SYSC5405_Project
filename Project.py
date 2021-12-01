@@ -254,15 +254,19 @@ if __name__ == '__main__':
 
     Classifier = Param(clf, data, hyp_pam)'''
 
-    xgb = XGBClassifier(use_label_encoder=False, max_depth=6, learning_rate=0.3, n_estimators=500, scale_pos_weight=1.5)
-    et = ExtraTreesClassifier(max_depth=6)
+    #xgb = XGBClassifier(use_label_encoder=False, max_depth=6, learning_rate=0.3, n_estimators=500, scale_pos_weight=1.5)
+    #et = ExtraTreesClassifier(max_depth=6)
     bag = BaggingClassifier(tree, n_estimators=100, bootstrap=False, bootstrap_features=True)
-    rf = BaggingClassifier(RandomForestClassifier(max_depth=7), n_estimators=50)
-    sv = SVC(probability=True, kernel="linear")
+    #rf = BaggingClassifier(RandomForestClassifier(max_depth=7), n_estimators=50)
+    #sv = SVC(probability=True, kernel="linear")
     # ('bag', bag)
-    models = [('xgb', xgb), ('et', et), ('bag',bag), ('rf', rf)]
+    xgb = XGBClassifier(use_label_encoder=False, n_estimators=450, max_depth=20, learning_rate=0.075, subsample=1.0,
+                        gamma=0, colsample_bytree=0.1)
+    xtr = ExtraTreesClassifier(n_estimators=150, max_features="log2", min_samples_split=5)
+
+    models = [('xgb', xgb), ('et', xtr)]
     vc = VotingClassifier(estimators=models, voting='soft')
-    Classifier = DecisionTree(data, kfold, tree, log=True)
+    Classifier = DecisionTree(data, kfold, vc, log=True)
     #Classifier1 = DecisionTree(data, kfold, XGBClassifier(use_label_encoder=False))
 
     #Classifier = DecisionTree(data, kfold, BaggingClassifier(n_estimators=100, random_state=0))
