@@ -17,7 +17,7 @@ from sklearn.decomposition import PCA
 
 dataset = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\train_data.csv")
 
-d2 = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\imp_feat.csv")
+d2 = pd.read_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\most_imp_feat_xgb.csv")
 
 imp = d2.iloc[:,1].tolist()[:50]
 # print(imp)
@@ -91,7 +91,7 @@ X = dataset.drop(["Label","KIBA"],axis="columns")
 X = dataset[imp]
 
 print(X.shape)
-
+#%%
 # data_per_group = []
 
 # for i in range(0,336,14):
@@ -102,7 +102,7 @@ print(X.shape)
 
 # X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.33, stratify=y)#random_state=2)#,shuffle=True)#, 
 
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.5, stratify=y)#random_state=2)#,shuffle=True)#, 
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.074699, stratify=y)#random_state=2)#,shuffle=True)#, 
 
 
 # data_per_group[-1].head()
@@ -129,7 +129,7 @@ y_test.replace({False: 0, True: 1}, inplace=True)
 ## Need to tune the weight [1.2, 1.5 give good performance], depth, learning rate
 ##Tuned : No. of trees = 500, using the most important features
 
-xgb = XGBClassifier(use_label_encoder=False, max_depth = 6, learning_rate = 0.3, n_estimators = 700, scale_pos_weight = 1.5)# scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
+xgb = XGBClassifier(use_label_encoder = False, max_depth = 8, learning_rate = 0.075, n_estimators = 450, scale_pos_weight = 1.5)# scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
 
 lr = LogisticRegression()
 sv = SVC(kernel= "poly", probability=True)
@@ -162,7 +162,7 @@ mlp = MLPClassifier(max_iter=300)
 
 
 
-models = [('xgb',xgb), ('et',et)]
+# models = [('xgb',xgb), ('et',et)]
 # Accuracy:  0.8665327000365364
 # Precision:  0.7812006319115324
 # Recall:  0.5125237519433408
@@ -190,7 +190,7 @@ models = [('xgb',xgb), ('et',et)]
 
 # vc = mlp
 
-vc = VotingClassifier(estimators=models, voting="soft")
+# vc = VotingClassifier(estimators=models, voting="soft")
 # 
 # vc = StackingClassifier(estimators=models, final_estimator=lr)
 
@@ -215,28 +215,28 @@ vc = VotingClassifier(estimators=models, voting="soft")
 
 
 
-vc.fit(X_train,y_train)
+# vc.fit(X_train,y_train)
 
 
-# xgb.fit(X_train,y_train, eval_metric='aucpr')
+xgb.fit(X_train,y_train, eval_metric='aucpr')
 
 
 # xgbrf = XGBRFClassifier()
 
 # xgb.fit(X_train,y_train, eval_metric='map')
 
-# kf = pd.DataFrame({'Variable':X.columns,
-#               'Importance':xgb.feature_importances_}).sort_values('Importance', ascending=False)
+kf = pd.DataFrame({'Variable':X.columns,
+              'Importance':xgb.feature_importances_}).sort_values('Importance', ascending=False)
 
 
-# print(kf.to_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\imp_feat_xgb.csv"))
+print(kf.to_csv("C:\\Users\\bhard\\OneDrive\\Desktop\\SYSC 5405 Pattern Classification\\Project\\most_imp_feat_xgb.csv"))
 
 # xgbrf.fit(X_train,y_train)
 
 # pred_y = xgb.predict(X_test)
 # pred_y_prob = xgb.predict_proba(X_test)[:,1]
 
-
+#%%
 pred_y = vc.predict(X_test)
 pred_y_prob = vc.predict_proba(X_test)[:,1]
 
