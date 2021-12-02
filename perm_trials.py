@@ -42,7 +42,9 @@ X = MinMaxScaler().fit_transform(X)
 
 # X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.5, stratify=y)#random_state=2)#,shuffle=True)#, 
 
-X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.074699, stratify=y)#random_state=2)#,shuffle=True)#,
+X_train, X_test, y_train, y_test = train_test_split(X,y,test_size=0.074699, stratify=y, random_state=42)#,shuffle=True)#,
+
+
 
 from xgboost import XGBClassifier, XGBRFClassifier
 from sklearn.ensemble import StackingClassifier, AdaBoostClassifier, BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier, VotingClassifier, RandomForestClassifier
@@ -61,7 +63,7 @@ y_train.replace({False: 0, True: 1}, inplace=True)
 y_test.replace({False: 0, True: 1}, inplace=True)
 
 
-xgb = XGBClassifier(use_label_encoder = False, max_depth = 20, learning_rate = 0.075, n_estimators = 450, scale_pos_weight = 1.5)# scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
+xgb = XGBClassifier(use_label_encoder = False, max_depth = 20, learning_rate = 0.075, n_estimators = 450,random_state= 42, scale_pos_weight = 1.5)# scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
 # xgb = XGBClassifier()
 
 lr = LogisticRegression(max_iter=1000, solver='saga')##can update max_iter, solver = saga
@@ -69,13 +71,14 @@ lr = LogisticRegression(max_iter=1000, solver='saga')##can update max_iter, solv
 
 sv = SVC(probability=True)
 sv2 = LinearSVC() 
-et = ExtraTreesClassifier(n_estimators=150, max_features="log2",min_samples_split=5)
+et = ExtraTreesClassifier(n_estimators=150, max_features="log2", min_samples_split=5, random_state= 42)
 dt = DecisionTreeClassifier(max_depth = 7)
 knn = KNeighborsClassifier(n_neighbors=9)
 bg = BaggingClassifier(DecisionTreeClassifier(max_depth = 7), n_estimators=500, max_samples=100, bootstrap=True, n_jobs=-1)
 rf = RandomForestClassifier(max_depth = 6, n_estimators=500, max_leaf_nodes=10, n_jobs=-1)
 mlp = MLPClassifier(max_iter=300)
-sgd = CalibratedClassifierCV(SGDClassifier(max_iter=1000, tol=1e-3, loss = 'hinge'))
+svm_sgd = CalibratedClassifierCV(SGDClassifier(max_iter=1000, tol=1e-3, loss = 'hinge'))
+lr_sgd = CalibratedClassifierCV(SGDClassifier(max_iter=1000, tol=1e-3, loss = 'log',random_state= 42))
 
 
 # models = [('et',et), ('sv',sv)]
@@ -88,7 +91,6 @@ sgd = CalibratedClassifierCV(SGDClassifier(max_iter=1000, tol=1e-3, loss = 'hing
 ## adaboost
 
 # models = [('rf',rf),('xgb'],xgb)   ## try next (better than bagging classifier)
-# models = [('xgb',xgb), ('et',et)]
 
 #also try rf
 # models = [('et',et)]#, ('qt',qt)]   ## try next (better than bagging classifier)
@@ -102,10 +104,27 @@ sgd = CalibratedClassifierCV(SGDClassifier(max_iter=1000, tol=1e-3, loss = 'hing
 # models = [('xgb',xgb),('lr',lr),('et',et)] ## wow pr 0.889    
 ## not good with ('mlp',mlp)
 
-models = [('xgb',xgb),('et',et),('sgd',sgd)]   ##best combination so far as of 1st december 10.45 am with pr@50 0.8530571992110454
 ##,('mlp',mlp),('knn',knn)] 
-# models2 = [('xgb',xgb), ('et',et), ('sv',sv)]
 
+
+# models = [('xgb',xgb), ('et',et)]   ## voting metric = // stacking metric
+
+
+models = [('xgb',xgb),('et',et),('svm_sgd',svm_sgd)]   ##best combination so far as of 1st december 10.45 am with pr@50 0.8530571992110454
+
+
+
+# models = [('svm_sgd',svm_sgd)]  ## PR@50Recall = 0.4362077660110943
+
+# models = [('dt',dt)] ## PR@50Recall = 0.4448409134916567
+
+# models = [('lr_sgd',lr_sgd),('svm_sgd',svm_sgd) ] ## PR@50Recall = 0.4379746835443038
+# models = [('lr_sgd',lr_sgd),('svm_sgd',svm_sgd),('dt',dt),('mlp',mlp) ] ## PR@50Recall =
+
+
+# models = [('dt',dt), ('svm_sgd',svm_sgd)] ## PR@50Recall = 0.4643048845947397
+
+# models = [('xgb',xgb)] 
 
 # models = [('et',et)]
 
@@ -114,9 +133,19 @@ models = [('xgb',xgb),('et',et),('sgd',sgd)]   ##best combination so far as of 1
 # models = [('xgb',xgb), ('sv',sv), ('et',et)] ## 2 hours and counting 
 
 
+# models = [('et',et)]
+
 vc = VotingClassifier(estimators=models, voting="soft")
 
-# vc = StackingClassifier(estimators=models, final_estimator= dt) 
+# vc = StackingClassifier(estimators = models, final_estimator = svm_sgd)   ## PR@50Recall = 
+
+
+
+# vc = StackingClassifier(estimators = models, final_estimator = svm_sgd)   ## PR@50Recall = 0.76 with models = et only
+
+
+# vc = StackingClassifier(estimators = models, final_estimator = mlp)   ## PR@50Recall = 
+
 
 # vc = StackingClassifier(estimators= [('xgb',xgb), ('et',et)], final_estimator= mlp) 
 
@@ -172,14 +201,14 @@ pred_y_prob = vc.predict_proba(X_test)[:,1]
 cm = confusion_matrix(y_test,pred_y)
 tn,fp,fn,tp = cm.ravel()
 
-print("Accuracy: ",(tp+tn)/(tp+tn+fp+fn))
-print("Precision: ", tp/(tp+fp))
-print("Recall: ", tp/(tp+fn))
-print("Sensitivity: ", tp/(tp+fn))
-print("Specificity: ",tn/(tn+fp))
-pr = tp/(tp+fp)
-rc = tp/(tp+fn)
-print("F1 score: ", (2*pr*rc)/(pr+rc))
+# print("Accuracy: ",(tp+tn)/(tp+tn+fp+fn))
+# print("Precision: ", tp/(tp+fp))
+# print("Recall: ", tp/(tp+fn))
+# print("Sensitivity: ", tp/(tp+fn))
+# print("Specificity: ",tn/(tn+fp))
+# pr = tp/(tp+fp)
+# rc = tp/(tp+fn)
+# print("F1 score: ", (2*pr*rc)/(pr+rc))
 
 # PrecisionRecallDisplay.from_predictions(y_test,pred_y_prob,pos_label=1)
 
@@ -191,11 +220,10 @@ pr_res = np.interp(0.5, recall_inv, precision_inv)
 print("PR Score:" + str(pr_res))
 
 plt.figure()
-plt.axvline(0.5, 0, color="black", linestyle="dotted", label="Recall=0.5")
-plt.axhline(pr_res, 0, color="black", linestyle="dotted",
-            label=f"Precision={pr_res}")
+plt.axvline(0.5, 0, color="black", linestyle="dotted")#, label="Recall=0.5")
+plt.axhline(pr_res, 0, color="black", linestyle="dotted", label= "PR@50Recall: {0}".format(pr_res))
 lw = 2
-plt.plot(recall, precision, color="darkorange", lw=lw, label= "PR@50Recall: {0}".format(pr_res), )
+plt.plot(recall, precision, color="darkorange", lw=lw)#, label= "PR@50Recall: {0}".format(pr_res), )
 # plt.plot([0, 1], [0.5, 0.5], color="navy", lw=lw, linestyle="--")
 plt.xlim([0.0, 1.1])
 plt.ylim([0.0, 1.1])
@@ -208,3 +236,4 @@ plt.legend(loc="lower right")
 
 ConfusionMatrixDisplay.from_predictions(y_test,pred_y)   
 RocCurveDisplay.from_predictions(y_test,pred_y_prob,pos_label=1)
+
