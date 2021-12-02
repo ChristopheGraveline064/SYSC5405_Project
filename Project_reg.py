@@ -5,11 +5,11 @@ from sklearn.linear_model import LogisticRegression
 import matplotlib.pyplot as plt
 from sklearn.model_selection import cross_val_predict, train_test_split, RandomizedSearchCV
 from sklearn.decomposition import PCA
-from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, ConfusionMatrixDisplay, PrecisionRecallDisplay, RocCurveDisplay
+from sklearn.metrics import confusion_matrix, roc_curve, auc, precision_recall_curve, ConfusionMatrixDisplay, PrecisionRecallDisplay, RocCurveDisplay, mean_squared_error
 from sklearn.svm import SVC, LinearSVC
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn.neighbors import KNeighborsRegressor
 from sklearn import tree
-from sklearn.neural_network import MLPClassifier
+from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import MinMaxScaler
 #import sklearn
 import graphviz
@@ -24,27 +24,27 @@ from scikit_obliquetree.segmentor import MSE, MeanSegmentor
 from sklearn import model_selection
 from sklearn.datasets import load_boston
 from sklearn.ensemble import (
-    BaggingClassifier,
     BaggingRegressor,
-    GradientBoostingClassifier,
-    RandomForestClassifier,
-    VotingClassifier,
-    ExtraTreesClassifier
+    GradientBoostingRegressor,
+    RandomForestRegressor,
+    VotingRegressor,
+    ExtraTreesRegressor
 )
 from xgboost import XGBClassifier, XGBRFClassifier
 import numpy as np
 from sklearn.calibration import CalibratedClassifierCV
-from sklearn.linear_model import SGDClassifier
+from sklearn.linear_model import SGDRegressor
 
 class Assignment:
     def __init__(self, data_file, profs_file=None, final_test=False):
+
         self.final_test = final_test
         self.data = self.load_data(data_file)
         self.features = self.data.iloc[:, 0:-2]
-        self.target = self.data.iloc[:, -1]
+        self.target = self.data.iloc[:, -2] #take the kiba scores instead of the labels
         self.features_name = list(self.features)
 
-        feature_select = 1
+        feature_select = 0
         if feature_select:
             d2 = pd.read_csv('./most_imp_feat_xgb.csv')
             imp = d2.iloc[:, 1].tolist()[:50]
@@ -59,18 +59,20 @@ class Assignment:
     def load_data(self, data):
         print("load the csv")
         try:
+            print("load " + data)
             return pd.read_csv(data)
             #return pd.read_csv(data, header=None)
         except:
+            print("ERROR: No file found")
             return None
 
-    def log_csv(self, log, Name='Group10_blind_predictions.csv'):
-        print("log the data " + Name)
+    def log_csv(self, log):
+        print("log the data")
         df = pd.DataFrame(data=log)
-        #print(df)
+        print(df)
         df.index += 1
-        #print(df)
-        df.to_csv(Name, index=True, header=False)
+        print(df)
+        df.to_csv('Group10_blind_predictions_egression.csv', index=True, header=False)
 
         #np.savetxt("Group10_blind_predictions.csv", log, delimiter=",")
 
@@ -157,58 +159,65 @@ class Assignment:
         plt.ylabel("Precision")
         plt.title("Precision Recall Curve")
         plt.legend(loc="lower right")
-        return pr_res
 
     def pred_from_kiba(self, pred):
+        pred_cp = pred.copy()
+        for i, kiba in enumerate(pred_cp):
+            if kiba >= 12.1:
+                pred_cp[i] = 1
+            else:
+                pred_cp[i] = 0
+
+        return pred_cp
+
+
+    def pred_from_kiba_df(self, pred):
+        pred = pred.tolist()
         for i, kiba in enumerate(pred):
-            if pred > 12.1:
+            if kiba >= 12.1:
                 pred[i] = 1
             else:
                 pred[i] = 0
 
+        return pred
 
-class DecisionTree(Assignment):
-    def __init__(self, data, fold=5, model=tree.DecisionTreeClassifier(max_depth=8), eval='', regression=False, log=False):
+    def mse_calc(self, target, pred):
+        mse = mean_squared_error(target, pred)
+        print("mse = {}".format(mse))
+
+class RegressionTree(Assignment):
+    def __init__(self, data, fold=5, model=tree.DecisionTreeRegressor(max_depth=8), name='', regression=True, log=False):
         super().__init__(data)
+        print(name)
         #self.features = self.feature_select()
         self.model = model
         #TODO add kfold test
         #self.target_prod = cross_val_predict(self.model, self.features, self.target, cv=fold)
-        if regression:
-            #TODO add a regression method and a metric to mesure its performance
-            pass
-        else:
-            #X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.33, stratify=self.target)
-            X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size = 0.074699, stratify = self.target, random_state = 42)
+        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.074699)
 
         self.model.fit(X_train, y_train)
-        '''try:
-            print("try to fit with aucpr")
-            self.model.fit(X_train, y_train, eval_metric='aucpr')
-        except:
-            self.model.fit(X_train, y_train)'''
-        try:
-            self.target_pred = self.model.predict(X_test)
-            self.get_confusion_matrix_result(y_test, self.target_pred, "Decision Tree Classifier")
-        except:
-            print("cannot get the prediction or display the confusion matrix")
+
+        self.target_pred = self.model.predict(X_test)
+        #self.get_confusion_matrix_result(y_test, self.target_pred, "Decision Tree Classifier")
+
         #try:
-        self.target_prod = self.model.predict_proba(X_test)
-        print(self.target_prod[:,1])
-        self.roc_plot(y_test, self.target_prod[:,1])
-        self.p_at_r_50 = self.precision_recall_curve_plot(y_test, self.target_prod[:,1])
+        #self.target_prod = self.model.predict_proba(X_test)
+        #print(self.target_prod[:,1])
+        #self.roc_plot(y_test, self.target_prod[:,1])
+        y_test_based_on_kiba = self.pred_from_kiba_df(y_test)
+        self.target_pred_based_on_kiba = self.pred_from_kiba(self.target_pred)
+        self.precision_recall_curve_plot(y_test_based_on_kiba, self.target_pred_based_on_kiba)
         # except:
         #    print("cannot get the probability or display the roc or prc")
 
         if self.final_test:
             print("Make prediction for the prof's data")
-            self.target_prod_prof = self.model.predict_proba(self.test_data)
+            self.target_pred = self.model.predict(self.test_data)
+
+        self.mse_calc(y_test, self.target_pred)
 
         if log:
-            self.log_csv(self.target_prod[:, 1], Name='Group10_blind_predictions.csv')
-            if self.final_test:
-                self.log_csv(self.target_prod_prof[:, 1], Name='Group10_blind_predictions_regression.csv')
-
+            self.log_csv(self.target_prod[:,1])
         #PrecisionRecallDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
         #RocCurveDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
         #self.dt_visualisation()
@@ -261,68 +270,51 @@ if __name__ == '__main__':
     data = data_path + csv_file
     kfold = 5
 
-    DT = tree.DecisionTreeClassifier(criterion="entropy", min_samples_split=6, min_samples_leaf=4, max_depth=7, max_features="sqrt")
-    #tree = tree.DecisionTreeRegressor(max_depth=8)
-    '''clf = MLPClassifier(activation='tanh', hidden_layer_sizes=170, learning_rate=0.003)
-    hyp_pam = {
-        "learning_rate_init": (0.003),
-    }
-    Classifier = Param(clf, data, hyp_pam)'''
+    '''models = [
+        #("RF", RandomForestRegressor(max_depth=3, n_jobs=5)), PR Score at recall of 50 is:0.4155632466086149 mse = 0.6007702087856265
+        #("GBDT", GradientBoostingRegressor(max_depth=3)), PR Score at recall of 50 is:0.5298694699790422 mse = 0.46706337150605187
+        (
+            "BUTIF",
+            BaggingRegressor(
+                BUTIF(
+                    linear_model=LogisticRegression(max_iter=10000),
+                    task="regression",
+                    max_leaf=8,
+                ),
+                100,
+                n_jobs=5,
+            ),
+        ),
+        (
+            "CO2",
+            BaggingRegressor(
+                ContinuouslyOptimizedObliqueRegressionTree(
+                    MSE(), MeanSegmentor(), thau=500, max_iter=100, max_depth=3
+                ),
+                100,
+                n_jobs=5,
+            ),
+        ),
+        (
+            "HHCART",
+            BaggingRegressor(
+                HouseHolderCART(MSE(), MeanSegmentor(), max_depth=3),
+                100,
+                n_jobs=5,
+            ),
+        ),
+    ]
 
-    '''clf = ExtraTreesClassifier(  n_estimators=200)
-    hyp_pam = {
-               #"n_estimators": (10, 20, 50, 100, 200),
-               "criterion": ("gini", "entropy"),
-               "max_features": ("auto", "sqrt", "log2"),
-               "min_samples_split": (2, 4, 6, 8),
-               "max_depth": (60, 100 , 150, 200),
-               }
+    for name, model in models:
+        Classifier = RegressionTree(data, kfold, model, name=name, log=False)'''
 
-    Classifier = Param(clf, data, hyp_pam)'''
-    xgb = XGBClassifier(use_label_encoder=False, max_depth=20, learning_rate=0.075, n_estimators=450, random_state=42,
-                        scale_pos_weight=1.5)  # scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
-    lr = LogisticRegression(max_iter=1000, solver='saga')  ##can update max_iter, solver = saga
-    ## https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
-    sv = SVC(probability=True)
-    sv2 = LinearSVC()
-    et = ExtraTreesClassifier(n_estimators=150, max_features="log2", min_samples_split=5, random_state=42)
-    dt = tree.DecisionTreeClassifier(max_depth=7)
-    knn = KNeighborsClassifier(n_neighbors=9)
-    bg = BaggingClassifier(DT, n_estimators=500, max_samples=100, bootstrap=True, n_jobs=-1)
-    rf = RandomForestClassifier(max_depth=6, n_estimators=500, max_leaf_nodes=10, n_jobs=-1)
-    mlp = MLPClassifier(activation='tanh', hidden_layer_sizes=170, learning_rate_init=0.003)
-    svm_sgd = CalibratedClassifierCV(SGDClassifier(max_iter=1000, tol=1e-3, loss='hinge'))
-    lr_sgd = CalibratedClassifierCV(SGDClassifier(max_iter=1000, tol=1e-3, loss='log', random_state=42))
+    gb = GradientBoostingRegressor(max_depth=20, learning_rate=0.075, n_estimators=450)
+    et = ExtraTreesRegressor(n_estimators=150, max_features="log2", min_samples_split=5)
+    svm_sgd = SGDRegressor(max_iter=1000, tol=1e-3, loss='hinge')
 
-    #xgb = XGBClassifier(use_label_encoder=False, max_depth=6, learning_rate=0.3, n_estimators=500, scale_pos_weight=1.5)
-    #et = ExtraTreesClassifier(max_depth=6)
-    #bag = BaggingClassifier(tree, n_estimators=100, bootstrap=False, bootstrap_features=True)
-    #sv = SVC(probability=True, kernel="linear")
-    #xgb = XGBClassifier(use_label_encoder=False, n_estimators=450, max_depth=20, learning_rate=0.075, subsample=1.0, gamma=0, colsample_bytree=0.1)
-
-    #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd), ("lr_sgd", lr_sgd)] #PR Score at recall of 50 is:0.7972350230414746
-    models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd)] #PR Score at recall of 50 is: 0.8309317963496637
-    #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd), ("knn", knn)] #PR Score at recall of 50 is:0.8084112149532711
-    #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd), ("mlp", mlp)] #PR Score at recall of 50 is:0.8114446529080676
-    #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd), ('mlp', mlp)] #0.8024118738404453
-    #models = [('xgb', xgb), ('sgd', svm_sgd), ('mlp', mlp)] #0.8024118738404453
-
-    list_pr = []
-    vc = VotingClassifier(estimators=models, voting='soft')
-
-    for interation in range(0, 5):
-        Classifier = DecisionTree(data, kfold, vc, log=True)
-        list_pr.append(Classifier.p_at_r_50)
-
-    print(list_pr)
-    np.savetxt("Presision_at_50_recall_interative_test.csv", list_pr, delimiter=",")
-
-
-    #Classifier1 = DecisionTree(data, kfold, XGBClassifier(use_label_encoder=False))
-    #Classifier = DecisionTree(data, kfold, BaggingClassifier(n_estimators=100, random_state=0))
-    #Classifier = DecisionTree(data, kfold, GradientBoostingClassifier())
-    #Classifier = DecisionTree(data, kfold, tree.DecisionTreeClassifier())
-    #Classifier = DecisionTree(data, kfold, model)
+    models = [('gb', gb), ('et', et), ('sgd', svm_sgd)]
+    vc = VotingRegressor(estimators=models)
+    Classifier = RegressionTree(data, kfold, vc, log=False)
 
     plt.show()
 
