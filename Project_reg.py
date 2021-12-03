@@ -44,7 +44,7 @@ class Assignment:
         self.target = self.data.iloc[:, -2] #take the kiba scores instead of the labels
         self.features_name = list(self.features)
 
-        feature_select = 0
+        feature_select = 1
         if feature_select:
             d2 = pd.read_csv('./most_imp_feat_xgb.csv')
             imp = d2.iloc[:, 1].tolist()[:50]
@@ -308,11 +308,11 @@ if __name__ == '__main__':
     for name, model in models:
         Classifier = RegressionTree(data, kfold, model, name=name, log=False)'''
 
-    gb = GradientBoostingRegressor(max_depth=20, learning_rate=0.075, n_estimators=450)
+    gb = GradientBoostingRegressor(max_depth=8, learning_rate=0.075, n_estimators=450)
     et = ExtraTreesRegressor(n_estimators=150, max_features="log2", min_samples_split=5)
     svm_sgd = SGDRegressor(max_iter=1000, tol=1e-3, loss='hinge')
 
-    models = [('gb', gb), ('et', et), ('sgd', svm_sgd)]
+    models = [('gb', gb), ('et', et)]
     vc = VotingRegressor(estimators=models)
     Classifier = RegressionTree(data, kfold, vc, log=False)
 

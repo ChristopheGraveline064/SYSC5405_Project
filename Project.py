@@ -125,7 +125,7 @@ class Assignment:
     def roc_plot(self, target, scores):
         fpr, tpr, thresholds = roc_curve(target, scores, pos_label=1)
         roc_auc = auc(fpr, tpr)
-        plt.figure()
+        '''plt.figure()
         lw = 2
         plt.plot(fpr, tpr, color="darkorange", lw=lw, label="ROC curve (area = %0.2f)" % roc_auc, )
         plt.plot([0, 1], [0, 1], color="navy", lw=lw, linestyle="--")
@@ -134,7 +134,7 @@ class Assignment:
         plt.xlabel("False Positive Rate")
         plt.ylabel("True Positive Rate")
         plt.title("Receiver operating characteristic")
-        plt.legend(loc="lower right")
+        plt.legend(loc="lower right")'''
 
     def precision_recall_curve_plot(self,target ,scores):
         precision, recall, thresholds = precision_recall_curve(target, scores, pos_label=1)
@@ -144,7 +144,7 @@ class Assignment:
         #pr_res = round(pr_res, 3)
         print("PR Score at recall of 50 is:" + str(pr_res))
 
-        plt.figure()
+        '''plt.figure()
         plt.axvline(0.5, 0, color="black", linestyle="dotted", label="Recall=0.5")
         plt.axhline(pr_res, 0, color="black", linestyle="dotted",
                     label=f"Precision={pr_res}")
@@ -156,7 +156,7 @@ class Assignment:
         plt.xlabel("Recall")
         plt.ylabel("Precision")
         plt.title("Precision Recall Curve")
-        plt.legend(loc="lower right")
+        plt.legend(loc="lower right")'''
         return pr_res
 
     def pred_from_kiba(self, pred):
@@ -179,7 +179,7 @@ class DecisionTree(Assignment):
             pass
         else:
             #X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.33, stratify=self.target)
-            X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size = 0.074699, stratify = self.target, random_state = 42)
+            X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size = 0.074699, stratify = self.target)
 
         self.model.fit(X_train, y_train)
         '''try:
@@ -279,13 +279,12 @@ if __name__ == '__main__':
                }
 
     Classifier = Param(clf, data, hyp_pam)'''
-    xgb = XGBClassifier(use_label_encoder=False, max_depth=20, learning_rate=0.075, n_estimators=450, random_state=42,
-                        scale_pos_weight=1.5)  # scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
+    xgb = XGBClassifier(use_label_encoder=False, max_depth=20, learning_rate=0.075, n_estimators=450, scale_pos_weight=1.5)#, random_state =42)  # scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
     lr = LogisticRegression(max_iter=1000, solver='saga')  ##can update max_iter, solver = saga
     ## https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
     sv = SVC(probability=True)
     sv2 = LinearSVC()
-    et = ExtraTreesClassifier(n_estimators=150, max_features="log2", min_samples_split=5, random_state=42)
+    et = ExtraTreesClassifier(n_estimators=150, max_features="log2", min_samples_split=5)#, random_state=42)
     dt = tree.DecisionTreeClassifier(max_depth=7)
     knn = KNeighborsClassifier(n_neighbors=9)
     bg = BaggingClassifier(DT, n_estimators=500, max_samples=100, bootstrap=True, n_jobs=-1)
@@ -301,7 +300,7 @@ if __name__ == '__main__':
     #xgb = XGBClassifier(use_label_encoder=False, n_estimators=450, max_depth=20, learning_rate=0.075, subsample=1.0, gamma=0, colsample_bytree=0.1)
 
     #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd), ("lr_sgd", lr_sgd)] #PR Score at recall of 50 is:0.7972350230414746
-    models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd)] #PR Score at recall of 50 is: 0.8309317963496637
+    #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd)] #PR Score at recall of 50 is: 0.8309317963496637
     #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd), ("knn", knn)] #PR Score at recall of 50 is:0.8084112149532711
     #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd), ("mlp", mlp)] #PR Score at recall of 50 is:0.8114446529080676
     #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd), ('mlp', mlp)] #0.8024118738404453
@@ -310,8 +309,8 @@ if __name__ == '__main__':
     list_pr = []
     vc = VotingClassifier(estimators=models, voting='soft')
 
-    for interation in range(0, 5):
-        Classifier = DecisionTree(data, kfold, vc, log=True)
+    for interation in range(0, 10):
+        Classifier = DecisionTree(data, kfold, xgb, log=True)
         list_pr.append(Classifier.p_at_r_50)
 
     print(list_pr)
