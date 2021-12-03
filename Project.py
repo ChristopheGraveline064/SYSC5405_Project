@@ -47,7 +47,7 @@ class Assignment:
         feature_select = 1
         if feature_select:
             d2 = pd.read_csv('./most_imp_feat_xgb.csv')
-            imp = d2.iloc[:, 1].tolist()[:100]
+            imp = d2.iloc[:, 1].tolist()[:50]
             self.features = self.features[imp]
             self.features = MinMaxScaler().fit_transform(self.features)
 
@@ -125,7 +125,7 @@ class Assignment:
     def roc_plot(self, target, scores):
         fpr, tpr, thresholds = roc_curve(target, scores, pos_label=1)
         roc_auc = auc(fpr, tpr)
-        '''plt.figure()
+        plt.figure()
         lw = 2
         plt.plot(fpr, tpr, color="darkorange", lw=lw, label="ROC curve (area = %0.2f)" % roc_auc, )
         plt.plot([0, 1], [0, 1], color="navy", lw=lw, linestyle="--")
@@ -134,7 +134,7 @@ class Assignment:
         plt.xlabel("False Positive Rate")
         plt.ylabel("True Positive Rate")
         plt.title("Receiver operating characteristic")
-        plt.legend(loc="lower right")'''
+        plt.legend(loc="lower right")
 
     def precision_recall_curve_plot(self,target ,scores):
         precision, recall, thresholds = precision_recall_curve(target, scores, pos_label=1)
@@ -144,19 +144,20 @@ class Assignment:
         #pr_res = round(pr_res, 3)
         print("PR Score at recall of 50 is:" + str(pr_res))
 
-        '''plt.figure()
+        plt.figure()
         plt.axvline(0.5, 0, color="black", linestyle="dotted", label="Recall=0.5")
         plt.axhline(pr_res, 0, color="black", linestyle="dotted",
                     label=f"Precision={pr_res}")
         lw = 2
         plt.plot(recall, precision, color="darkorange", lw=lw, label="Precision Recall Curve", )
-        plt.plot([0, 1], [0.5, 0.5], color="navy", lw=lw, linestyle="--")
+        #plt.plot([0, 1], [0.5, 0.5], color="navy", lw=lw, linestyle="--")
+        plt.plot(0.5, pr_res, marker='x', color="red")
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.0])
         plt.xlabel("Recall")
         plt.ylabel("Precision")
         plt.title("Precision Recall Curve")
-        plt.legend(loc="lower right")'''
+        plt.legend(loc="lower right")
         return pr_res
 
     def pred_from_kiba(self, pred):
@@ -206,6 +207,7 @@ class DecisionTree(Assignment):
 
         if log:
             self.log_csv(self.target_prod[:, 1], Name='Group10_blind_predictions.csv')
+            self.log_csv(self.target_pred, Name='Group10_blind_predictions_for_devvrat_bless_his_soul.csv')
             if self.final_test:
                 self.log_csv(self.target_prod_prof[:, 1], Name='Group10_blind_predictions_regression.csv')
 
@@ -242,7 +244,7 @@ class Param(Assignment):
     def __init__(self,clf, data, param):
         super().__init__(data)
         self.model = RandomizedSearchCV(clf, param_distributions=param, cv=5)
-        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.33, stratify=self.target)
+        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.074699)
         self.model.fit(X_train, y_train)
         dt_opt = self.model.best_estimator_
         print("Parameter: ")
@@ -269,17 +271,18 @@ if __name__ == '__main__':
     }
     Classifier = Param(clf, data, hyp_pam)'''
 
-    '''clf = ExtraTreesClassifier(  n_estimators=200)
+    '''clf = XGBClassifier(use_label_encoder=False, n_estimators = 450)
     hyp_pam = {
-               #"n_estimators": (10, 20, 50, 100, 200),
-               "criterion": ("gini", "entropy"),
-               "max_features": ("auto", "sqrt", "log2"),
-               "min_samples_split": (2, 4, 6, 8),
-               "max_depth": (60, 100 , 150, 200),
+               "scale_pos_weight": (1, 1.5, 2), #2
+               "learning_rate": (0.05, 0.075, 0.1), #0.1
+               "max_depth": (10, 20 , 30), #20
                }
 
     Classifier = Param(clf, data, hyp_pam)'''
+    #golden
     xgb = XGBClassifier(use_label_encoder=False, max_depth=20, learning_rate=0.075, n_estimators=450, scale_pos_weight=1.5)#, random_state =42)  # scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
+
+    #xgb = XGBClassifier(use_label_encoder=False, max_depth=20, learning_rate=0.1, n_estimators=450,scale_pos_weight=2)
     lr = LogisticRegression(max_iter=1000, solver='saga')  ##can update max_iter, solver = saga
     ## https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
     sv = SVC(probability=True)
@@ -305,10 +308,14 @@ if __name__ == '__main__':
     #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd), ("mlp", mlp)] #PR Score at recall of 50 is:0.8114446529080676
     #models = [('xgb', xgb), ('et', et), ('sgd', svm_sgd), ('mlp', mlp)] #0.8024118738404453
     #models = [('xgb', xgb), ('sgd', svm_sgd), ('mlp', mlp)] #0.8024118738404453
+    model = [('dt', dt), ('sgd', svm_sgd),('lr_sgd', lr_sgd), ('mlp', mlp), ('knn', knn)]
 
     list_pr = []
-    #vc = VotingClassifier(estimators=models, voting='soft')
+    vc = VotingClassifier(estimators=model, voting='soft')
 
+    #100 feature 0.8641358641358642, 0.858987090367428
+    #150 feature 0.8658658658658659, 0.8615537848605578
+    #200 feature 0.8564356435643564
     for interation in range(0, 10):
         Classifier = DecisionTree(data, kfold, xgb, log=True)
         list_pr.append(Classifier.p_at_r_50)

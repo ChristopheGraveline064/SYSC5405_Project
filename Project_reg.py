@@ -309,22 +309,23 @@ if __name__ == '__main__':
         Classifier = RegressionTree(data, kfold, model, name=name, log=False)'''
 
     #gb = GradientBoostingRegressor(max_depth=8, learning_rate=0.075, n_estimators=450)
-    gb = XGBRegressor(max_depth=8, learning_rate=0.075, n_estimators=450)
+    #gb = XGBRegressor(max_depth=8, learning_rate=0.075, n_estimators=450)#PR Score at recall of 50 is:0.762525571210418 mse = 0.2930226036218155
+    gb = XGBRegressor(max_depth=11, learning_rate=0.1, n_estimators=450)#PR Score at recall of 50 is:0.7582052700524706 mse = 0.24061243482327527
     et = ExtraTreesRegressor(n_estimators=150, max_features="log2", min_samples_split=5)
     svm_sgd = SGDRegressor(max_iter=1000, tol=1e-3, loss='hinge')
 
     models = [('gb', gb), ('et', et)]
     vc = VotingRegressor(estimators=models)
-    #Classifier = RegressionTree(data, kfold, gb, log=False)
+    for iteration in range(0, 10):
+        Classifier = RegressionTree(data, kfold, gb, log=False)
 
-    clf = XGBRegressor()
+    '''clf = XGBRegressor(n_estimators=450)
     hyp_pam = {
-        "n_estimators": (200, 350, 400, 450 , 500),
-        "learning_rate": (0.025, 0.05, 0.075, 0.1),
-        "max_depth": (2,3,4,5,6,7,8,9,10,15),
+        "learning_rate": (0.08, 0.1, 0.12),
+        "max_depth": (11,12,15),
     }
 
-    Classifier = Param(clf, data, hyp_pam)
+    Classifier = Param(clf, data, hyp_pam)'''
 
     plt.show()
 
