@@ -30,7 +30,7 @@ from sklearn.ensemble import (
     VotingRegressor,
     ExtraTreesRegressor
 )
-from xgboost import XGBClassifier, XGBRFClassifier
+from xgboost import XGBClassifier, XGBRFClassifier, XGBRegressor
 import numpy as np
 from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import SGDRegressor
@@ -251,7 +251,7 @@ class Param(Assignment):
     def __init__(self,clf, data, param):
         super().__init__(data)
         self.model = RandomizedSearchCV(clf, param_distributions=param, cv=5)
-        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.33, stratify=self.target)
+        X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.074699)
         self.model.fit(X_train, y_train)
         dt_opt = self.model.best_estimator_
         print("Parameter: ")
@@ -308,13 +308,23 @@ if __name__ == '__main__':
     for name, model in models:
         Classifier = RegressionTree(data, kfold, model, name=name, log=False)'''
 
-    gb = GradientBoostingRegressor(max_depth=8, learning_rate=0.075, n_estimators=450)
+    #gb = GradientBoostingRegressor(max_depth=8, learning_rate=0.075, n_estimators=450)
+    gb = XGBRegressor(max_depth=8, learning_rate=0.075, n_estimators=450)
     et = ExtraTreesRegressor(n_estimators=150, max_features="log2", min_samples_split=5)
     svm_sgd = SGDRegressor(max_iter=1000, tol=1e-3, loss='hinge')
 
     models = [('gb', gb), ('et', et)]
     vc = VotingRegressor(estimators=models)
-    Classifier = RegressionTree(data, kfold, vc, log=False)
+    #Classifier = RegressionTree(data, kfold, gb, log=False)
+
+    clf = XGBRegressor()
+    hyp_pam = {
+        "n_estimators": (200, 350, 400, 450 , 500),
+        "learning_rate": (0.025, 0.05, 0.075, 0.1),
+        "max_depth": (2,3,4,5,6,7,8,9,10,15),
+    }
+
+    Classifier = Param(clf, data, hyp_pam)
 
     plt.show()
 

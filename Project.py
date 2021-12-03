@@ -47,7 +47,7 @@ class Assignment:
         feature_select = 1
         if feature_select:
             d2 = pd.read_csv('./most_imp_feat_xgb.csv')
-            imp = d2.iloc[:, 1].tolist()[:50]
+            imp = d2.iloc[:, 1].tolist()[:100]
             self.features = self.features[imp]
             self.features = MinMaxScaler().fit_transform(self.features)
 
@@ -307,7 +307,7 @@ if __name__ == '__main__':
     #models = [('xgb', xgb), ('sgd', svm_sgd), ('mlp', mlp)] #0.8024118738404453
 
     list_pr = []
-    vc = VotingClassifier(estimators=models, voting='soft')
+    #vc = VotingClassifier(estimators=models, voting='soft')
 
     for interation in range(0, 10):
         Classifier = DecisionTree(data, kfold, xgb, log=True)
