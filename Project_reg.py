@@ -36,8 +36,7 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import SGDRegressor
 
 class Assignment:
-    def __init__(self, data_file, profs_file=None, final_test=False):
-
+    def __init__(self, data_file, profs_file="", final_test=False):
         self.final_test = final_test
         self.data = self.load_data(data_file)
         self.features = self.data.iloc[:, 0:-2]
@@ -49,11 +48,14 @@ class Assignment:
             d2 = pd.read_csv('./most_imp_feat_xgb.csv')
             imp = d2.iloc[:, 1].tolist()[:50]
             self.features = self.features[imp]
-            self.features = MinMaxScaler().fit_transform(self.features)
+            #self.features = MinMaxScaler().fit_transform(self.features)
 
         if self.final_test:
             print("take the professors data")
             self.test_data = self.load_data(profs_file)
+            d2 = pd.read_csv('./most_imp_feat_xgb.csv')
+            imp = d2.iloc[:, 1].tolist()[:50]
+            self.test_data = self.test_data[imp]
 
     #data visualization
     def load_data(self, data):
@@ -66,15 +68,15 @@ class Assignment:
             print("ERROR: No file found")
             return None
 
-    def log_csv(self, log):
-        print("log the data")
-        df = pd.DataFrame(data=log)
+    def log_csv(self, log, Name='Group10_blind_kiba_score.txt'):
+        print("log the data" + Name)
+        '''df = pd.DataFrame(data=log)
         print(df)
         df.index += 1
         print(df)
-        df.to_csv('Group10_blind_predictions_egression.csv', index=True, header=False)
+        df.to_csv('Group10_blind_predictions_egression.csv', index=True, header=False)'''
 
-        #np.savetxt("Group10_blind_predictions.csv", log, delimiter=",")
+        np.savetxt(Name, log)
 
     def plot_distribution(self, feature):
         #use seaborn
@@ -186,9 +188,9 @@ class Assignment:
         print("mse = {}".format(mse))
 
 class RegressionTree(Assignment):
-    def __init__(self, data, fold=5, model=tree.DecisionTreeRegressor(max_depth=8), name='', regression=True, log=False):
-        super().__init__(data)
-        print(name)
+    def __init__(self, data, fold=5, model=tree.DecisionTreeRegressor(max_depth=8), Profs_file='', log=False, Final_test=False):
+        super().__init__(data, profs_file=Profs_file, final_test=Final_test)
+
         #self.features = self.feature_select()
         self.model = model
         #TODO add kfold test
@@ -210,14 +212,15 @@ class RegressionTree(Assignment):
         # except:
         #    print("cannot get the probability or display the roc or prc")
 
-        if self.final_test:
-            print("Make prediction for the prof's data")
-            self.target_pred = self.model.predict(self.test_data)
-
         self.mse_calc(y_test, self.target_pred)
 
+        if self.final_test:
+            self.target_pred_prof = self.model.predict(self.test_data)
+
         if log:
-            self.log_csv(self.target_prod[:,1])
+            self.log_csv(self.target_pred, Name='My_kiba_score_pred.txt')
+            if self.final_test:
+                self.log_csv(self.target_pred_prof)
         #PrecisionRecallDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
         #RocCurveDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
         #self.dt_visualisation()
@@ -265,9 +268,11 @@ if __name__ == '__main__':
     os.environ["PATH"] += os.pathsep + 'C:/Program Files/Graphviz/bin/'
     #print(os.path.join())
     csv_file = 'train_data.csv'
+    blind_csv_file = 'blind_test_data.csv'
     data_path = './Data/'
 
     data = data_path + csv_file
+    Profs_file =  data_path + 'blind_test_data.csv'
     kfold = 5
 
     '''models = [
@@ -316,8 +321,8 @@ if __name__ == '__main__':
 
     models = [('gb', gb), ('et', et)]
     vc = VotingRegressor(estimators=models)
-    for iteration in range(0, 10):
-        Classifier = RegressionTree(data, kfold, gb, log=False)
+    #for iteration in range(0, 10):
+    Classifier = RegressionTree(data, kfold, gb, log=True, Profs_file=Profs_file, Final_test=True)
 
     '''clf = XGBRegressor(n_estimators=450)
     hyp_pam = {

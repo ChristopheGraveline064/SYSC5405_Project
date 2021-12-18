@@ -10,6 +10,7 @@ from sklearn.svm import SVC, LinearSVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import tree
 from sklearn.neural_network import MLPClassifier
+from collections import Counter
 from sklearn.preprocessing import MinMaxScaler
 #import sklearn
 import graphviz
@@ -37,7 +38,7 @@ from sklearn.calibration import CalibratedClassifierCV
 from sklearn.linear_model import SGDClassifier
 
 class Assignment:
-    def __init__(self, data_file, profs_file=None, final_test=False):
+    def __init__(self, data_file, profs_file="", final_test=False):
         self.final_test = final_test
         self.data = self.load_data(data_file)
         self.features = self.data.iloc[:, 0:-2]
@@ -49,11 +50,14 @@ class Assignment:
             d2 = pd.read_csv('./most_imp_feat_xgb.csv')
             imp = d2.iloc[:, 1].tolist()[:50]
             self.features = self.features[imp]
-            self.features = MinMaxScaler().fit_transform(self.features)
+            #self.features = MinMaxScaler().fit_transform(self.features)
 
         if self.final_test:
             print("take the professors data")
             self.test_data = self.load_data(profs_file)
+            d2 = pd.read_csv('./most_imp_feat_xgb.csv')
+            imp = d2.iloc[:, 1].tolist()[:50]
+            self.test_data = self.test_data[imp]
 
     #data visualization
     def load_data(self, data):
@@ -66,13 +70,14 @@ class Assignment:
 
     def log_csv(self, log, Name='Group10_blind_predictions.csv'):
         print("log the data " + Name)
-        df = pd.DataFrame(data=log)
+        '''df = pd.DataFrame(data=log)
         #print(df)
         df.index += 1
         #print(df)
-        df.to_csv(Name, index=True, header=False)
+        df.to_csv(Name, index=True, header=False)'''
 
-        #np.savetxt("Group10_blind_predictions.csv", log, delimiter=",")
+        #np.savetxt(Name, log, delimiter=",")
+        np.savetxt(Name, log)
 
     def plot_distribution(self, feature):
         #use seaborn
@@ -138,26 +143,28 @@ class Assignment:
 
     def precision_recall_curve_plot(self,target ,scores):
         precision, recall, thresholds = precision_recall_curve(target, scores, pos_label=1)
-        precision_inv = precision[::-1]
-        recall_inv = recall[::-1]
-        pr_res = np.interp(0.5, recall_inv, precision_inv)
+        print(thresholds)
+        #precision_inv = precision[::-1]
+        #recall_inv = recall[::-1]
+        #pr_res = np.interp(0.5, recall_inv, precision_inv)
         #pr_res = round(pr_res, 3)
-        print("PR Score at recall of 50 is:" + str(pr_res))
+        #print("PR Score at recall of 50 is:" + str(pr_res))
 
         plt.figure()
-        plt.axvline(0.5, 0, color="black", linestyle="dotted", label="Recall=0.5")
-        plt.axhline(pr_res, 0, color="black", linestyle="dotted",
-                    label=f"Precision={pr_res}")
+        #plt.axvline(0.5, 0, color="black", linestyle="dotted", label="Recall=0.5")
+        #plt.axhline(pr_res, 0, color="black", linestyle="dotted",
+        #            label=f"Precision={pr_res}")
         lw = 2
         plt.plot(recall, precision, color="darkorange", lw=lw, label="Precision Recall Curve", )
         #plt.plot([0, 1], [0.5, 0.5], color="navy", lw=lw, linestyle="--")
-        plt.plot(0.5, pr_res, marker='x', color="red")
+        #plt.plot(0.5, pr_res, marker='x', color="red")
         plt.xlim([0.0, 1.0])
         plt.ylim([0.0, 1.0])
         plt.xlabel("Recall")
         plt.ylabel("Precision")
         plt.title("Precision Recall Curve")
         plt.legend(loc="lower right")
+        pr_res = 0
         return pr_res
 
     def pred_from_kiba(self, pred):
@@ -169,8 +176,8 @@ class Assignment:
 
 
 class DecisionTree(Assignment):
-    def __init__(self, data, fold=5, model=tree.DecisionTreeClassifier(max_depth=8), eval='', regression=False, log=False):
-        super().__init__(data)
+    def __init__(self, data, fold=5, model=tree.DecisionTreeClassifier(max_depth=8), Profs_file='', regression=False, log=False, Final_test=False):
+        super().__init__(data, profs_file=Profs_file, final_test=Final_test)
         #self.features = self.feature_select()
         self.model = model
         #TODO add kfold test
@@ -180,8 +187,9 @@ class DecisionTree(Assignment):
             pass
         else:
             #X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size=0.5, train_size=0.33, stratify=self.target)
-            X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size = 0.074699, stratify = self.target)
-
+            X_train, X_test, y_train, y_test = train_test_split(self.features, self.target, test_size = 0.074699)
+        print(len(y_train))
+        print(len(y_test))
         self.model.fit(X_train, y_train)
         '''try:
             print("try to fit with aucpr")
@@ -195,21 +203,27 @@ class DecisionTree(Assignment):
             print("cannot get the prediction or display the confusion matrix")
         #try:
         self.target_prod = self.model.predict_proba(X_test)
-        print(self.target_prod[:,1])
         self.roc_plot(y_test, self.target_prod[:,1])
         self.p_at_r_50 = self.precision_recall_curve_plot(y_test, self.target_prod[:,1])
+        print("On test set:")
+        print(Counter(self.target_pred))
         # except:
         #    print("cannot get the probability or display the roc or prc")
 
         if self.final_test:
             print("Make prediction for the prof's data")
+            self.target_pred_prof = self.model.predict(self.test_data)
+            print("On blind set:")
+            print(Counter(self.target_pred_prof))
             self.target_prod_prof = self.model.predict_proba(self.test_data)
-
+        print(self.target_prod[:, 1])
         if log:
-            self.log_csv(self.target_prod[:, 1], Name='Group10_blind_predictions.csv')
-            self.log_csv(self.target_pred, Name='Group10_blind_predictions_for_devvrat_bless_his_soul.csv')
+            self.log_csv(self.target_prod[:, 1], Name='Group10_test_data_predictions.txt')
+            #self.log_csv(self.target_pred, Name='Group10_blind_predictions_for_devvrat_bless_his_soul.csv')
             if self.final_test:
-                self.log_csv(self.target_prod_prof[:, 1], Name='Group10_blind_predictions_regression.csv')
+                pass
+                self.log_csv(self.target_prod_prof[:, 1], Name='Group10_blind_predictions.txt')
+                self.log_csv(self.target_pred_prof, Name='Group10_blind_predictions_prediction.txt')
 
         #PrecisionRecallDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
         #RocCurveDisplay.from_estimator(self.model, X_test, y_test, pos_label=1)
@@ -258,11 +272,12 @@ if __name__ == '__main__':
     os.environ["PATH"] += os.pathsep + 'C:/Program Files/Graphviz/bin/'
     #print(os.path.join())
     csv_file = 'train_data.csv'
+    blind_csv_file = 'blind_test_data.csv'
     data_path = './Data/'
 
     data = data_path + csv_file
     kfold = 5
-
+    Profs_file = data_path + blind_csv_file
     DT = tree.DecisionTreeClassifier(criterion="entropy", min_samples_split=6, min_samples_leaf=4, max_depth=7, max_features="sqrt")
     #tree = tree.DecisionTreeRegressor(max_depth=8)
     '''clf = MLPClassifier(activation='tanh', hidden_layer_sizes=170, learning_rate=0.003)
@@ -280,8 +295,10 @@ if __name__ == '__main__':
 
     Classifier = Param(clf, data, hyp_pam)'''
     #golden
-    xgb = XGBClassifier(use_label_encoder=False, max_depth=20, learning_rate=0.075, n_estimators=450, scale_pos_weight=1.5)#, random_state =42)  # scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
+    xgb = XGBClassifier(use_label_encoder=False, max_depth=20, learning_rate=0.075, n_estimators=450, scale_pos_weight=3.72)#, random_state =42)  # scale_pos_weight = 86324/23155)#, eval_metric = "error" #"logloss")#, max_depth =7)
 
+    #xgb = XGBClassifier(use_label_encoder = False, max_depth = 12, min_child_weight = 6, gamma= 5, subsample = 1, colsample_bytree = 1, learning_rate = 0.05, n_estimators = 700, scale_pos_weight = 3.72)
+    #xgb = XGBClassifier()
     #xgb = XGBClassifier(use_label_encoder=False, max_depth=20, learning_rate=0.1, n_estimators=450,scale_pos_weight=2)
     lr = LogisticRegression(max_iter=1000, solver='saga')  ##can update max_iter, solver = saga
     ## https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html
@@ -316,12 +333,12 @@ if __name__ == '__main__':
     #100 feature 0.8641358641358642, 0.858987090367428
     #150 feature 0.8658658658658659, 0.8615537848605578
     #200 feature 0.8564356435643564
-    for interation in range(0, 10):
-        Classifier = DecisionTree(data, kfold, xgb, log=True)
-        list_pr.append(Classifier.p_at_r_50)
+    #for interation in range(0, 10):
+    Classifier = DecisionTree(data, kfold, xgb, log=True, Profs_file=Profs_file, Final_test=True)
+    #list_pr.append(Classifier.p_at_r_50)
 
-    print(list_pr)
-    np.savetxt("Presision_at_50_recall_interative_test.csv", list_pr, delimiter=",")
+    #print(list_pr)
+    #np.savetxt("Presision_at_50_recall_interative_test.csv", list_pr, delimiter=",")
 
 
     #Classifier1 = DecisionTree(data, kfold, XGBClassifier(use_label_encoder=False))
